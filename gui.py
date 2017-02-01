@@ -11,6 +11,7 @@ class MixerTab(wx.Window):
     def __init__(self, parent, iface, output):
         wx.Window.__init__(self, parent)
 
+        self.iface = iface
         self.output = output
         self.parent = parent
         self.initialize()
@@ -18,21 +19,15 @@ class MixerTab(wx.Window):
     def initialize(self):
         sizer = wx.GridBagSizer()
 
-        self.entry = wx.TextCtrl(self, -1, value=u"Enter text here.")
-        sizer.Add(self.entry, (0, 0), (1, 1), wx.EXPAND)
-        self.Bind(wx.EVT_TEXT_ENTER, self.OnPressEnter, self.entry)
+        pos = 3
+        for inpt in self.iface.get_inputs():
+            slider = wx.Slider(self, wx.ID_ANY, style=wx.SL_VERTICAL | wx.SL_INVERSE)
+            sizer.Add(slider, (1, pos), span=(10, 2), flag=wx.EXPAND)
 
-        button = wx.Button(self, -1, label="Click me !")
-        sizer.Add(button, (0, 1))
-        self.Bind(wx.EVT_BUTTON, self.OnButtonClick, button)
+            label = wx.StaticText(self, wx.ID_ANY, label=inpt.name)
+            sizer.Add(label, (12, pos))
 
-        self.label = wx.StaticText(self, -1, label=u'Hello !')
-        self.label.SetBackgroundColour(wx.BLUE)
-        self.label.SetForegroundColour(wx.WHITE)
-        sizer.Add(self.label, (1, 0), (1, 2), wx.EXPAND)
-
-        self.slider = wx.Slider(self, -1, style=wx.SL_VERTICAL | wx.SL_INVERSE)
-        sizer.Add(self.slider, (2, 2), span=(16, 1), flag=wx.EXPAND)
+            pos += 3
 
         sizer.AddGrowableCol(0)
         self.SetSizerAndFit(sizer)
