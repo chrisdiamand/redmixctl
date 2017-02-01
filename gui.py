@@ -1,15 +1,17 @@
 #!/usr/bin/env python2.7
 
-from __future__ import print_function
 
+from __future__ import print_function
 import wx
+
+import backend
 
 
 class MixerTab(wx.Window):
-    def __init__(self, parent, name):
+    def __init__(self, parent, iface, output):
         wx.Window.__init__(self, parent)
 
-        self.name = name
+        self.output = output
         self.parent = parent
         self.initialize()
 
@@ -46,25 +48,26 @@ class MixerTab(wx.Window):
 
 
 class MixerTabs(wx.Frame):
-    def __init__(self, parent, id, title):
-        wx.Frame.__init__(self, parent, id, title)
-        self.parent = parent
+    def __init__(self, parent, id, iface):
+        wx.Frame.__init__(self, parent, id, "Scarlett Mixer")
 
         self.tabs = wx.Notebook(self)
-        self.pages = [
-            MixerTab(self.tabs, "Monitors"),
-            MixerTab(self.tabs, "Headphone 1"),
-            MixerTab(self.tabs, "Headphone 2"),
-        ]
-        for p in self.pages:
-            self.tabs.AddPage(p, p.name)
+
+        for output in iface.get_outputs():
+            page = MixerTab(self.tabs, iface, output)
+            self.tabs.AddPage(page, output.name)
 
         self.Show(True)
 
 
 class MixerApp(wx.App):
+    def __init__(self, iface):
+        self.iface = iface
+
+        wx.App.__init__(self)
+
     def OnInit(self):
-        frame = MixerTabs(None, -1, "Scarlett Mixer")
+        frame = MixerTabs(None, wx.ID_ANY, self.iface)
         frame.Show(True)
         self.SetTopWindow(frame)
 
@@ -72,7 +75,8 @@ class MixerApp(wx.App):
 
 
 def main():
-    app = MixerApp()
+    iface = backend.Interface()
+    app = MixerApp(iface)
     app.MainLoop()
 
 
