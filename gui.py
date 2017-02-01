@@ -72,13 +72,3 @@ class MixerApp(wx.App):
         self.SetTopWindow(frame)
 
         return True
-
-
-def main():
-    iface = backend.Interface()
-    app = MixerApp(iface)
-    app.MainLoop()
-
-
-if __name__ == "__main__":
-    main()
