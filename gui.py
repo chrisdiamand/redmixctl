@@ -7,6 +7,24 @@ import wx
 import backend
 
 
+class Fader(wx.Window):
+    def __init__(self, parent, inpt):
+        wx.Window.__init__(self, parent)
+
+        self.inpt = inpt
+        self.parent = parent
+
+        sizer = wx.GridBagSizer()
+        slider = wx.Slider(self, wx.ID_ANY, style=wx.SL_VERTICAL | wx.SL_INVERSE)
+        sizer.Add(slider, (1, 1), span=(10, 3), flag=wx.EXPAND)
+
+        label = wx.StaticText(self, wx.ID_ANY, label=inpt.name)
+        sizer.Add(label, (12, 1))
+
+        self.SetSizerAndFit(sizer)
+        self.Show(True)
+
+
 class MixerTab(wx.Window):
     def __init__(self, parent, iface, output):
         wx.Window.__init__(self, parent)
@@ -17,21 +35,18 @@ class MixerTab(wx.Window):
         self.initialize()
 
     def initialize(self):
-        sizer = wx.GridBagSizer()
+        sizer = wx.BoxSizer()
 
         pos = 3
+        sizer.AddSpacer(10)
         for inpt in self.iface.get_inputs():
-            slider = wx.Slider(self, wx.ID_ANY, style=wx.SL_VERTICAL | wx.SL_INVERSE)
-            sizer.Add(slider, (1, pos), span=(10, 2), flag=wx.EXPAND)
+            fader = Fader(self, inpt)
 
-            label = wx.StaticText(self, wx.ID_ANY, label=inpt.name)
-            sizer.Add(label, (12, pos))
+            sizer.Add(fader)
+            pos += 1
+        sizer.AddSpacer(10)
 
-            pos += 3
-
-        sizer.AddGrowableCol(0)
         self.SetSizerAndFit(sizer)
-        self.SetSizeHints(-1, self.GetSize().y, -1, self.GetSize().y)
         self.Show(True)
 
     def OnButtonClick(self, event):
@@ -46,11 +61,16 @@ class MixerTabs(wx.Frame):
     def __init__(self, parent, id, iface):
         wx.Frame.__init__(self, parent, id, "Scarlett Mixer")
 
+        sizer = wx.BoxSizer()
+
         self.tabs = wx.Notebook(self)
 
         for output in iface.get_outputs():
             page = MixerTab(self.tabs, iface, output)
             self.tabs.AddPage(page, output.name)
+
+        sizer.Add(self.tabs)
+        self.SetSizerAndFit(sizer)
 
         self.Show(True)
 
