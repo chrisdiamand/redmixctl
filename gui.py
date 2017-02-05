@@ -53,13 +53,6 @@ class MixerTab(wx.Window):
         self.SetSizerAndFit(sizer)
         self.Show(True)
 
-    def OnButtonClick(self, event):
-        self.label.SetLabel(self.entry.GetValue() +
-                            " (You clicked the button)")
-
-    def OnPressEnter(self, event):
-        self.label.SetLabel(self.entry.GetValue() + " (You pressed ENTER)")
-
 
 class MixerTabs(wx.Frame):
     def __init__(self, parent, id, iface):
