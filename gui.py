@@ -2,9 +2,13 @@
 
 
 from __future__ import print_function
+import logging
 import wx
 
 import backend
+import version
+
+logger = logging.getLogger(version.NAME + "." + __name__)
 
 
 class Fader(wx.Window):

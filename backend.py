@@ -6,7 +6,9 @@ from pyalsa import alsacard, alsamixer
 import logging
 import re
 
-logger = logging.getLogger(__name__)
+import version
+
+logger = logging.getLogger(version.NAME + "." + __name__)
 
 
 class Input:

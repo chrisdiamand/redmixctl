@@ -1,12 +1,63 @@
 #!/usr/bin/env python2.7
 
-import backend
-import gui
+import argparse
+import os
+
+import version
+
+logger = None
+MAX_LOG_SIZE = 4 * 1024 * 1024 # 4 MB
+
+
+def init_logging(logfile):
+    import logging
+    import logging.handlers
+    import time
+
+    global logger
+    logger = logging.getLogger(version.NAME)
+    logger.setLevel(logging.DEBUG)
+
+    stderr_logger = logging.StreamHandler()
+    stderr_logger.setLevel(logging.INFO)
+    logger.addHandler(stderr_logger)
+
+    try:
+        os.makedirs(os.path.dirname(logfile))
+    except:
+        pass
+    file_logger = logging.handlers.RotatingFileHandler(logfile,
+                                                       maxBytes=MAX_LOG_SIZE,
+                                                       backupCount=5)
+    file_logger.setLevel(logging.DEBUG)
+    file_fmt = logging.Formatter("%(asctime)s:%(module)13s: %(message)s")
+    file_fmt.converter = time.gmtime
+    file_logger.setFormatter(file_fmt)
+
+    logger.addHandler(file_logger)
+    logger.debug("--- [starting] ---")
+
+
+def parse_args():
+    ap = argparse.ArgumentParser()
+
+    ap.add_argument("-l", "--logfile",
+                    default=os.path.expanduser("~/.{0}/{0}.log".format(version.NAME)))
+
+    return ap.parse_args()
+
 
 def main():
+    args = parse_args()
+    init_logging(args.logfile)
+
+    import backend
+    import gui
+
     iface = backend.Interface()
     app = gui.MixerApp(iface)
     app.MainLoop()
+
 
 if __name__ == "__main__":
     main()
