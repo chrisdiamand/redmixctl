@@ -3,6 +3,10 @@
 
 from __future__ import print_function
 from pyalsa import alsacard, alsamixer
+import logging
+import re
+
+logger = logging.getLogger(__name__)
 
 
 class Input:
@@ -15,29 +19,48 @@ class Output:
         self.name = name
 
 
-def find_card_number(cardname):
+def get_supported_cards():
+    ret = list()
     card_numbers = alsacard.card_list()
-    print(card_numbers)
-    ret = None
-    for num in card_numbers:
-        name = alsacard.card_get_name(num)
-        longname = alsacard.card_get_longname(num)
-        print(name, longname)
 
-        if cardname and name == cardname:
-            if not ret:
-                ret = num
-            else:
-                print("Warning: Multiple interfaces matching '%s'" % cardname)
-        elif not cardname:
-            if longname.startswith("Focusrite Scarlett"):
-                if not ret:
-                    ret = num
-                else:
-                    print("Warning: Multiple scarlett interfaces found (at least %d:'%s' and %d:'%s')" % \
-                            (ret, alsacard.card_get_name(ret), num, alsacard.card_get_name(num)))
+    for num in card_numbers:
+        longname = alsacard.card_get_longname(num)
+        if longname.startswith("Focusrite Scarlett"):
+            logger.info("Supported card %d: %s" % (num, longname))
+            ret += [num]
+        else:
+            logger.info("Unsupported card %d: %s" % (num, longname))
 
     return ret
+
+
+def find_card_number(cardname):
+    card_numbers = get_supported_cards()
+    print(card_numbers)
+    ret = None
+
+    if not card_numbers:
+        logger.error("No supported cards found")
+        return None
+
+    if cardname:
+        card_numbers = [num for num in card_numbers
+                        if re.match(cardname, alsacard.card_get_name(num))]
+
+        if not card_numbers:
+            logger.error("No supported cards matching '%s' found" % cardname)
+            return None
+
+    if len(card_numbers) > 1:
+        if cardname:
+            logger.warn("Multiple supported cards matching '%s':" % cardname)
+        else:
+            logger.warn("Multiple supported cards:")
+        for num in card_numbers:
+            logger.warn("%d: %s (%s)" % (num, alsacard.card_get_num(num),
+                                         alsacard.card_get_longname(num)))
+
+    return card_numbers[0]
 
 
 class Interface:
