@@ -53,7 +53,6 @@ def get_supported_cards():
 
 def find_card_number(cardname):
     card_numbers = get_supported_cards()
-    print(card_numbers)
     ret = None
 
     if not card_numbers:
@@ -83,11 +82,10 @@ def find_card_number(cardname):
 class Interface:
     def __init__(self, cardname=None):
         self.card_number = find_card_number(cardname)
-        m = alsamixer.Mixer()
-        print(m)
-        m.attach("hw:%d" % self.card_number)
-        m.load()
-        print(m.list())
+        self.mixer = alsamixer.Mixer()
+        self.mixer.attach("hw:%d" % self.card_number)
+        self.mixer.load()
+        self.get_mixer_elems()
 
         self.inputs = [
             Input("Analog 1"),
@@ -100,15 +98,30 @@ class Interface:
             Input("Analog 8"),
         ]
 
-        self.outputs = [
-            Output("Monitor"),
-            Output("Headphone 1"),
-            Output("Headphone 2"),
-            Output("SPDIF"),
-        ]
+        self.outputs = self.find_outputs()
+
+    def get_mixer_elems(self):
+        self.mixer_elems = []
+        for (name, index) in self.mixer.list():
+            elem = alsamixer.Element(self.mixer, name, index)
+            self.mixer_elems.append(elem)
 
     def get_inputs(self):
         return self.inputs
 
     def get_outputs(self):
         return self.outputs
+
+    def find_outputs(self):
+        ret = []
+        prog = re.compile("Master ([0-9]+) \((.*)\)")
+        for elem in self.mixer_elems:
+            m = prog.match(elem.name)
+            if not m:
+                continue
+            index = int(m.groups()[0])
+            name = m.groups()[1]
+            logger.info("Found output %d/%s, from '%s'" % (index, name, elem.name))
+            output = Output(name)
+            ret += [output]
+        return ret
