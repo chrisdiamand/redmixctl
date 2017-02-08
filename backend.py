@@ -27,8 +27,15 @@ logger = logging.getLogger(version.NAME + "." + __name__)
 
 
 class Input:
-    def __init__(self, name):
+    def __init__(self, interface, name, input_index, enum_index):
+        self.interface = interface
         self.name = name
+        self.input_index = input_index
+        self.enum_index = enum_index
+
+        # Set the correct input source
+        elem = interface.find_mixer_elem("Input Source %02d" % self.input_index)
+        elem.setenum(self.enum_index)
 
 
 class Output:
@@ -84,22 +91,13 @@ class Interface:
         self.card_index = find_card_index(cardname)
         self.get_mixer_elems()
 
-        self.inputs = [
-            Input("Analog 1"),
-            Input("Analog 2"),
-            Input("Analog 3"),
-            Input("Analog 4"),
-            Input("Analog 5"),
-            Input("Analog 6"),
-            Input("Analog 7"),
-            Input("Analog 8"),
-        ]
-
-        self.outputs = self.find_outputs()
+        self.init_inputs()
+        self.init_outputs()
 
     def get_mixer_elems(self):
         self.mixer_elems = []
         for name in alsaaudio.mixers(cardindex=self.card_index):
+            logger.debug("Found mixer element '%s'" % name)
             elem = alsaaudio.Mixer(control=name, cardindex=self.card_index)
             self.mixer_elems.append(elem)
 
@@ -109,8 +107,33 @@ class Interface:
     def get_outputs(self):
         return self.outputs
 
-    def find_outputs(self):
+    def get_input_source_enum_values(self):
+        # Use the elem values for the first 'Input Source' to find out the
+        # available inputs.
+        for elem in self.mixer_elems:
+            if elem.mixer().startswith("Input Source "):
+                enum_values = elem.getenum()[1]
+                break
+
         ret = []
+        for name in enum_values:
+                ret.append(name)
+        return ret
+
+    def init_inputs(self):
+        self.inputs = []
+
+        input_source_enum_values = self.get_input_source_enum_values()
+        for i in range(0, len(input_source_enum_values)):
+            name = input_source_enum_values[i]
+            if not (name.startswith("Analog ")
+                    or name.startswith("SPDIF ")
+                    or name.startswith("ADAT ")):
+                continue
+            self.inputs += [Input(self, name, len(self.inputs) + 1, i)]
+
+    def init_outputs(self):
+        self.outputs = []
         prog = re.compile("Master ([0-9]+) \((.*)\)")
         for elem in self.mixer_elems:
             elem_name = elem.mixer()
@@ -121,5 +144,10 @@ class Interface:
             name = m.groups()[1]
             logger.info("Found output %d/%s, from '%s'" % (index, name, elem_name))
             output = Output(name)
-            ret += [output]
-        return ret
+            self.outputs += [output]
+
+    def find_mixer_elem(self, name):
+        for elem in self.mixer_elems:
+            if elem.mixer() == name:
+                return elem
+        return None
