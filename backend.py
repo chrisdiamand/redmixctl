@@ -37,6 +37,10 @@ class Input:
         elem = interface.find_mixer_elem("Input Source %02d" % self.input_index)
         elem.setenum(self.enum_index)
 
+        # Set the matrix input source
+        elem = interface.find_mixer_elem("Matrix %02d Input" % self.input_index)
+        elem.setenum(self.enum_index)
+
 
 def set_enum_value(mixer_elem, name):
     values = mixer_elem.getenum()[1]
@@ -71,8 +75,11 @@ class Output:
                          % (output_index, name))
 
         output_index -= 1 # Letters start at 0, outputs (Master 1, etc) start at 1
-        set_enum_value(elemL, "Mix " + chr(ord("A") + 2*output_index))
-        set_enum_value(elemR, "Mix " + chr(ord("A") + 2*output_index + 1))
+        self.mixnameL = "Mix " + chr(ord("A") + 2*output_index)
+        self.mixnameR = "Mix " + chr(ord("A") + 2*output_index + 1)
+
+        set_enum_value(elemL, self.mixnameL)
+        set_enum_value(elemR, self.mixnameR)
 
 
 def get_supported_cards():
