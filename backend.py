@@ -17,7 +17,7 @@
 
 
 from __future__ import print_function
-from pyalsa import alsacard, alsamixer
+import alsaaudio
 import logging
 import re
 
@@ -38,10 +38,10 @@ class Output:
 
 def get_supported_cards():
     ret = list()
-    card_numbers = alsacard.card_list()
+    card_indexes = alsaaudio.card_indexes()
 
-    for num in card_numbers:
-        longname = alsacard.card_get_longname(num)
+    for num in card_indexes:
+        (name, longname) = alsaaudio.card_name(num)
         if longname.startswith("Focusrite Scarlett"):
             logger.info("Supported card %d: %s" % (num, longname))
             ret += [num]
@@ -51,40 +51,37 @@ def get_supported_cards():
     return ret
 
 
-def find_card_number(cardname):
-    card_numbers = get_supported_cards()
+def find_card_index(cardname):
+    card_indexes = get_supported_cards()
     ret = None
 
-    if not card_numbers:
+    if not card_indexes:
         logger.error("No supported cards found")
         return None
 
     if cardname:
-        card_numbers = [num for num in card_numbers
-                        if re.match(cardname, alsacard.card_get_name(num))]
+        card_indexes = [num for num in card_indexes
+                        if re.match(cardname, alsaaudio.card_name(num)[0])]
 
-        if not card_numbers:
+        if not card_indexes:
             logger.error("No supported cards matching '%s' found" % cardname)
             return None
 
-    if len(card_numbers) > 1:
+    if len(card_indexes) > 1:
         if cardname:
             logger.warn("Multiple supported cards matching '%s':" % cardname)
         else:
             logger.warn("Multiple supported cards:")
-        for num in card_numbers:
-            logger.warn("%d: %s (%s)" % (num, alsacard.card_get_num(num),
-                                         alsacard.card_get_longname(num)))
+        for num in card_indexes:
+            (name, longname) = alsaaudio.card_name(num)
+            logger.warn("%d: %s (%s)" % (num, name, longname))
 
-    return card_numbers[0]
+    return card_indexes[0]
 
 
 class Interface:
     def __init__(self, cardname=None):
-        self.card_number = find_card_number(cardname)
-        self.mixer = alsamixer.Mixer()
-        self.mixer.attach("hw:%d" % self.card_number)
-        self.mixer.load()
+        self.card_index = find_card_index(cardname)
         self.get_mixer_elems()
 
         self.inputs = [
@@ -102,8 +99,8 @@ class Interface:
 
     def get_mixer_elems(self):
         self.mixer_elems = []
-        for (name, index) in self.mixer.list():
-            elem = alsamixer.Element(self.mixer, name, index)
+        for name in alsaaudio.mixers(cardindex=self.card_index):
+            elem = alsaaudio.Mixer(control=name, cardindex=self.card_index)
             self.mixer_elems.append(elem)
 
     def get_inputs(self):
@@ -116,12 +113,13 @@ class Interface:
         ret = []
         prog = re.compile("Master ([0-9]+) \((.*)\)")
         for elem in self.mixer_elems:
-            m = prog.match(elem.name)
+            elem_name = elem.mixer()
+            m = prog.match(elem_name)
             if not m:
                 continue
             index = int(m.groups()[0])
             name = m.groups()[1]
-            logger.info("Found output %d/%s, from '%s'" % (index, name, elem.name))
+            logger.info("Found output %d/%s, from '%s'" % (index, name, elem_name))
             output = Output(name)
             ret += [output]
         return ret
