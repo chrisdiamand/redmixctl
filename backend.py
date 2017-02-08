@@ -38,9 +38,41 @@ class Input:
         elem.setenum(self.enum_index)
 
 
+def set_enum_value(mixer_elem, name):
+    values = mixer_elem.getenum()[1]
+    for index in range(0, len(values)):
+        if values[index] == name:
+            break;
+    if index >= len(values):
+        logger.error("Couldn't set enum value for %s to '%s' (choices: %s)"
+                     % (mixer_elem.mixer(), name, str(values)))
+        return
+
+    logger.debug("Setting %s to %s (index %d)" % (mixer_elem.mixer(), name, index))
+    mixer_elem.setenum(index)
+
+
 class Output:
-    def __init__(self, name):
+    def __init__(self, interface, name, output_index):
         self.name = name
+
+        # Set the output source to the correct mix
+        elemL = interface.find_mixer_elem("Master %dL (%s) Source"
+                                          % (output_index, name))
+        elemR = interface.find_mixer_elem("Master %dR (%s) Source"
+                                          % (output_index, name))
+        if not (elemL and elemR):
+            elemL = interface.find_mixer_elem("Master %dL (%s) Source Playback Enu"
+                                              % (output_index, name))
+            elemR = interface.find_mixer_elem("Master %dR (%s) Source Playback Enu"
+                                              % (output_index, name))
+        if not (elemL and elemR):
+            logger.error("Couldn't find output source mixer elements for Master %d '%s'"
+                         % (output_index, name))
+
+        output_index -= 1 # Letters start at 0, outputs (Master 1, etc) start at 1
+        set_enum_value(elemL, "Mix " + chr(ord("A") + 2*output_index))
+        set_enum_value(elemR, "Mix " + chr(ord("A") + 2*output_index + 1))
 
 
 def get_supported_cards():
@@ -143,7 +175,7 @@ class Interface:
             index = int(m.groups()[0])
             name = m.groups()[1]
             logger.info("Found output %d/%s, from '%s'" % (index, name, elem_name))
-            output = Output(name)
+            output = Output(self, name, index)
             self.outputs += [output]
 
     def find_mixer_elem(self, name):
