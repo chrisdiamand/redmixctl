@@ -20,6 +20,7 @@ from __future__ import print_function
 import alsaaudio
 import logging
 import re
+import sys
 
 import version
 
@@ -149,10 +150,18 @@ class Interface:
     def get_input_source_enum_values(self):
         # Use the elem values for the first 'Input Source' to find out the
         # available inputs.
+        enum_values = None
         for elem in self.mixer_elems:
             if elem.mixer().startswith("Input Source "):
                 enum_values = elem.getenum()[1]
                 break
+
+        if not enum_values:
+            logger.error("Could not find `Input Source` mixer element")
+            logger.error("Available mixer elements:")
+            for elem in self.mixer_elems:
+                print(" -", elem.mixer())
+            sys.exit(1)
 
         ret = []
         for name in enum_values:
