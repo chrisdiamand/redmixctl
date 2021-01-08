@@ -27,20 +27,16 @@ import version
 logger = logging.getLogger(version.NAME + "." + __name__)
 
 
-class Input:
-    def __init__(self, interface, name, input_index, enum_index):
+class Source:
+    def __init__(self, interface, name: str, pcm_input: str=None):
         self.interface = interface
         self.name = name
-        self.input_index = input_index
-        self.enum_index = enum_index
 
-        # Set the correct input source
-        elem = interface.find_mixer_elem("Input Source %02d" % self.input_index)
-        elem.setenum(self.enum_index)
-
-        # Set the matrix input source
-        elem = interface.find_mixer_elem("Matrix %02d Input" % self.input_index)
-        elem.setenum(self.enum_index)
+        # For physical inputs, ensure the PCM input sending the input audio back to
+        # the PC corresponds to the correct input.
+        if pcm_input:
+            mixer_elem = interface.mixer_elems[pcm_input]
+            set_enum_value(mixer_elem, name)
 
 
 def set_enum_value(mixer_elem, name):
@@ -58,140 +54,83 @@ def set_enum_value(mixer_elem, name):
 
 
 class Output:
-    def __init__(self, interface, name, output_index):
+    def __init__(self, interface, name):
+        self.interface = interface
         self.name = name
 
-        # Set the output source to the correct mix
-        elemL = interface.find_mixer_elem("Master %dL (%s) Source"
-                                          % (output_index, name))
-        elemR = interface.find_mixer_elem("Master %dR (%s) Source"
-                                          % (output_index, name))
-        if not (elemL and elemR):
-            elemL = interface.find_mixer_elem("Master %dL (%s) Source Playback Enu"
-                                              % (output_index, name))
-            elemR = interface.find_mixer_elem("Master %dR (%s) Source Playback Enu"
-                                              % (output_index, name))
-        if not (elemL and elemR):
-            logger.error("Couldn't find output source mixer elements for Master %d '%s'"
-                         % (output_index, name))
 
-        output_index -= 1 # Letters start at 0, outputs (Master 1, etc) start at 1
-        self.mixnameL = "Mix " + chr(ord("A") + 2*output_index)
-        self.mixnameR = "Mix " + chr(ord("A") + 2*output_index + 1)
-
-        set_enum_value(elemL, self.mixnameL)
-        set_enum_value(elemR, self.mixnameR)
-
-
-def get_supported_cards():
+def find_card_index(model_name: str) -> int:
     ret = list()
     card_indexes = alsaaudio.card_indexes()
 
-    for num in card_indexes:
-        (name, longname) = alsaaudio.card_name(num)
-        if longname.startswith("Focusrite Scarlett"):
-            logger.info("Supported card %d: %s" % (num, longname))
-            ret += [num]
-        else:
-            logger.info("Unsupported card %d: %s" % (num, longname))
+    for i in card_indexes:
+        (name, _) = alsaaudio.card_name(i)
+        if name == model_name:
+            return i
 
-    return ret
-
-
-def find_card_index(cardname):
-    card_indexes = get_supported_cards()
-    ret = None
-
-    if not card_indexes:
-        logger.error("No supported cards found")
-        return None
-
-    if cardname:
-        card_indexes = [num for num in card_indexes
-                        if re.match(cardname, alsaaudio.card_name(num)[0])]
-
-        if not card_indexes:
-            logger.error("No supported cards matching '%s' found" % cardname)
-            return None
-
-    if len(card_indexes) > 1:
-        if cardname:
-            logger.warn("Multiple supported cards matching '%s':" % cardname)
-        else:
-            logger.warn("Multiple supported cards:")
-        for num in card_indexes:
-            (name, longname) = alsaaudio.card_name(num)
-            logger.warn("%d: %s (%s)" % (num, name, longname))
-
-    return card_indexes[0]
+    logger.error("No card '%s' found" % model_name)
+    logger.error("Available cards:")
+    for i in card_indexes:
+        logger.error(" - %s", alsaaudio.card_name(i)[0])
+    sys.exit(1)
 
 
 class Interface:
-    def __init__(self, cardname=None):
-        self.card_index = find_card_index(cardname)
-        self.get_mixer_elems()
+    def __init__(self, model):
+        self.model = model
+        self.card_index = find_card_index(model.name)
 
-        self.init_inputs()
-        self.init_outputs()
-
-    def get_mixer_elems(self):
-        self.mixer_elems = []
+        # Get the mixer element for each available mixer control
+        self.mixer_elems: dict[str, alsaaudio.Mixer] = {}
         for name in alsaaudio.mixers(cardindex=self.card_index):
             logger.debug("Found mixer element '%s'" % name)
             elem = alsaaudio.Mixer(control=name, cardindex=self.card_index)
-            self.mixer_elems.append(elem)
+            assert name not in self.mixer_elems
+            self.mixer_elems[name] = elem
+
+        self.validate_mixer_elems()
+
+        self.init_monitorable_sources()
+        self.init_outputs()
+
+    def validate_mixer_elems(self):
+        """Verify that all the mixer elements specified in the model actually exist"""
+
+        # Every sink (physical output or mixer input) should be an enum, and should
+        # have every physical input, mix, and output PCM as a possible value.
+        source_enum_values = set(["Off"] + self.model.physical_inputs + self.model.mixes + self.model.pcm_outputs)
+        for output in self.model.physical_outputs + self.model.mixer_inputs:
+            elem = self.mixer_elems[output]
+            current, enum_values = elem.getenum()
+            assert set(enum_values) == source_enum_values
+
 
     def get_inputs(self):
-        return self.inputs
+        return self.sources
 
     def get_outputs(self):
         return self.outputs
 
-    def get_input_source_enum_values(self):
-        # Use the elem values for the first 'Input Source' to find out the
-        # available inputs.
-        enum_values = None
-        for elem in self.mixer_elems:
-            if elem.mixer().startswith("Input Source "):
-                enum_values = elem.getenum()[1]
-                break
+    def init_monitorable_sources(self):
+        """Initialise objects representing the physical inputs and PCM outputs that
+        can be included in the mix"""
+        self.sources = []
 
-        if not enum_values:
-            logger.error("Could not find `Input Source` mixer element")
-            logger.error("Available mixer elements:")
-            for elem in self.mixer_elems:
-                print(" -", elem.mixer())
-            sys.exit(1)
+        assert len(self.model.physical_inputs) == len(self.model.pcm_inputs)
+        for i in range(0, len(self.model.physical_inputs)):
+            name = self.model.physical_inputs[i]
+            pcm_input = self.model.pcm_inputs[i]
+            self.sources += [Source(self, name, pcm_input=pcm_input)]
 
-        ret = []
-        for name in enum_values:
-                ret.append(name)
-        return ret
-
-    def init_inputs(self):
-        self.inputs = []
-
-        input_source_enum_values = self.get_input_source_enum_values()
-        for i in range(0, len(input_source_enum_values)):
-            name = input_source_enum_values[i]
-            if not (name.startswith("Analog ")
-                    or name.startswith("SPDIF ")
-                    or name.startswith("ADAT ")):
-                continue
-            self.inputs += [Input(self, name, len(self.inputs) + 1, i)]
+        for name  in self.model.pcm_outputs:
+            self.sources += [Source(self, name)]
 
     def init_outputs(self):
         self.outputs = []
-        prog = re.compile("Master ([0-9]+) \((.*)\)")
-        for elem in self.mixer_elems:
-            elem_name = elem.mixer()
-            m = prog.match(elem_name)
-            if not m:
-                continue
-            index = int(m.groups()[0])
-            name = m.groups()[1]
-            logger.info("Found output %d/%s, from '%s'" % (index, name, elem_name))
-            output = Output(self, name, index)
+
+        for name in self.model.physical_outputs:
+            mixer_elem = self.mixer_elems[name]
+            output = Output(self, name)
             self.outputs += [output]
 
     def find_mixer_elem(self, name):
