@@ -46,7 +46,7 @@ def init_logging(logfile):
     logger.setLevel(logging.DEBUG)
 
     stderr_logger = logging.StreamHandler()
-    stderr_logger.setLevel(logging.INFO)
+    stderr_logger.setLevel(logging.DEBUG)
     logger.addHandler(stderr_logger)
 
     try:
