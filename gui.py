@@ -69,18 +69,22 @@ class MixerTab(wx.Window):
         self.Show(True)
 
 
-class MixerTabs(wx.Frame):
-    def __init__(self, parent, id, iface):
-        wx.Frame.__init__(self, parent, id, "Scarlett Mixer")
-
-        sizer = wx.BoxSizer()
-
-        self.tabs = wx.Notebook(self)
+class MixerTabs(wx.Notebook):
+    def __init__(self, parent, iface):
+        wx.Notebook.__init__(self, parent)
 
         for output in iface.get_outputs():
-            page = MixerTab(self.tabs, iface, output)
-            self.tabs.AddPage(page, output.name)
+            page = MixerTab(self, iface, output)
+            self.AddPage(page, output.name)
 
+
+class MainWindow(wx.Frame):
+    def __init__(self, iface):
+        wx.Frame.__init__(self, None, wx.ID_ANY, "Scarlett Mixer")
+
+        self.tabs = MixerTabs(self, iface)
+
+        sizer = wx.BoxSizer()
         sizer.Add(self.tabs)
         self.SetSizerAndFit(sizer)
 
@@ -94,7 +98,7 @@ class MixerApp(wx.App):
         wx.App.__init__(self)
 
     def OnInit(self):
-        frame = MixerTabs(None, wx.ID_ANY, self.iface)
+        frame = MainWindow(self.iface)
         frame.Show(True)
         self.SetTopWindow(frame)
 
