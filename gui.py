@@ -27,21 +27,21 @@ logger = logging.getLogger(version.NAME + "." + __name__)
 
 
 class Fader(wx.Window):
-    def __init__(self, parent, inpt):
+    def __init__(self, parent, source):
         wx.Window.__init__(self, parent)
 
-        self.inpt = inpt
+        self.source = source
         self.parent = parent
 
         sizer = wx.GridBagSizer()
         slider = wx.Slider(self, wx.ID_ANY, style=wx.SL_VERTICAL | wx.SL_INVERSE)
         sizer.Add(slider, (1, 1), span=(10, 3), flag=wx.EXPAND)
 
-        label = wx.StaticText(self, wx.ID_ANY, label=inpt.name)
+        label = wx.StaticText(self, wx.ID_ANY, label=source.name)
         sizer.Add(label, (12, 1))
 
         self.SetSizerAndFit(sizer)
-        self.Show(True)
+        self.Hide()
 
 
 class MixerTab(wx.Window):
@@ -52,37 +52,49 @@ class MixerTab(wx.Window):
         self.output = output
         self.parent = parent
         self.initialize()
+        self.update()
 
     def initialize(self):
-        sizer = wx.BoxSizer()
+        self.sizer = wx.BoxSizer()
 
         pos = 3
-        sizer.AddSpacer(10)
-        for inpt in self.iface.get_inputs():
-            if not inpt.is_monitored():
-                continue
-            fader = Fader(self, inpt)
+        self.sizer.AddSpacer(10)
+        self.faders = []
+        for source in self.iface.get_inputs():
+            fader = Fader(self, source)
+            self.faders.append(fader)
 
-            sizer.Add(fader)
+            self.sizer.Add(fader)
             pos += 1
-        sizer.AddSpacer(10)
+        self.sizer.AddSpacer(10)
 
-        self.SetSizerAndFit(sizer)
+        self.SetSizerAndFit(self.sizer)
         self.Show(True)
+
+    def update(self):
+        for fader in self.faders:
+            if fader.source.is_monitored():
+                fader.Show()
+            else:
+                fader.Hide()
+        self.Fit()
 
 
 class MixerTabs(wx.Notebook):
     def __init__(self, parent, iface):
         wx.Notebook.__init__(self, parent)
 
-        for output in iface.get_outputs():
-            page = MixerTab(self, iface, output)
-            self.AddPage(page, output.name)
+        self.mix_tabs = []
+        for mix_name in iface.model.mixes:
+            mix_tab = MixerTab(self, iface, mix_name)
+            self.mix_tabs += [mix_tab]
+            self.AddPage(mix_tab, mix_name)
 
 
 class CommonSettingsPanel(wx.Panel):
-    def __init__(self, parent, iface):
+    def __init__(self, parent, app, iface):
         wx.Panel.__init__(self, parent)
+        self.app = app
         self.iface = iface
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -113,14 +125,23 @@ class CommonSettingsPanel(wx.Panel):
             logger.info("%s enabled", name)
         else:
             logger.info("%s disabled", name)
+
         source = self.iface.get_inputs()[index]
+        if enabled:
+            source.add_to_monitored_inputs()
+        else:
+            source.remove_from_monitored_inputs()
+
+        mix_tabs = self.app.frame.tabs.mix_tabs
+        for mix_tab in mix_tabs:
+            mix_tab.update()
 
 
 class MainWindow(wx.Frame):
-    def __init__(self, iface):
+    def __init__(self, app, iface):
         wx.Frame.__init__(self, None, wx.ID_ANY, "Scarlett Mixer")
 
-        self.settings = CommonSettingsPanel(self, iface)
+        self.settings = CommonSettingsPanel(self, app, iface)
         self.tabs = MixerTabs(self, iface)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -138,8 +159,8 @@ class MixerApp(wx.App):
         wx.App.__init__(self)
 
     def OnInit(self):
-        frame = MainWindow(self.iface)
-        frame.Show(True)
-        self.SetTopWindow(frame)
+        self.frame = MainWindow(self, self.iface)
+        self.frame.Show(True)
+        self.SetTopWindow(self.frame)
 
         return True

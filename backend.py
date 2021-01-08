@@ -38,27 +38,76 @@ class Source:
             mixer_elem = interface.mixer_elems[pcm_input]
             set_enum_value(mixer_elem, name)
 
-    def is_monitored(self) -> bool:
-        """Return true if this input is used by a mixer input"""
+        # At init, try and detect if this input is already set as a mixer input
+        self.mixer_input = None
         for mixer_input in self.interface.model.mixer_inputs:
             mixer_elem = self.interface.mixer_elems[mixer_input]
             current_value, _ = mixer_elem.getenum()
             if current_value == self.name:
-                return True
+                self.mixer_input = mixer_input
+
+    def is_monitored(self) -> bool:
+        """Return true if this input is used by a mixer input"""
+        return True if self.mixer_input else False
+
+    def add_to_monitored_inputs(self):
+        logger.debug("Request to start monitoring %s", self.name)
+
+        if self.mixer_input:
+            logger.warn("add_to_monitored_inputs(%s) called but already connected to %s", self.name, self.mixer_input)
+            return
+
+        # TODO: Improve this to keep the ordering sane
+        # Find a free mixer input
+        for mixer_input in self.interface.model.mixer_inputs:
+            mixer_elem = self.interface.mixer_elems[mixer_input]
+            current_value, _ = mixer_elem.getenum()
+            if current_value == "Off":
+                self.mixer_input = mixer_input
+                set_enum_value(mixer_elem, self.name)
+                break
+
+        if not self.mixer_input:
+            logger.error("Could not add %s to monitor mix: No free mixer inputs!", self.name)
+            logger.error("Mixer inputs are currently used by:")
+            for mixer_input in self.interface.model.mixer_inputs:
+                mixer_elem = self.interface.mixer_elems[mixer_input]
+                logger.error(" - %s -> %s", mixer_elem.getenum()[0], mixer_elem.mixer())
+
+    def remove_from_monitored_inputs(self):
+        logger.debug("Request to stop monitoring %s", self.name)
+
+        if not self.mixer_input:
+            logger.warn("remove_from_monitored_inputs(%s) called but already disconnected", self.name)
+
+        for mixer_input in self.interface.model.mixer_inputs:
+            mixer_elem = self.interface.mixer_elems[mixer_input]
+            current_value, _ = mixer_elem.getenum()
+            if current_value == self.name:
+                self.mixer_input = mixer_input
+                set_enum_value(mixer_elem, "Off")
+
+        self.mixer_input = None
 
 
-def set_enum_value(mixer_elem, name):
-    values = mixer_elem.getenum()[1]
-    for index in range(0, len(values)):
-        if values[index] == name:
-            break;
-    if index >= len(values):
+def set_enum_value(mixer_elem: alsaaudio.Mixer, enum_value):
+    current, enum_values = mixer_elem.getenum()
+    current_index = -1
+    target_index = -1
+    for index in range(0, len(enum_values)):
+        if enum_values[index] == current:
+            current_index = index
+        if enum_values[index] == enum_value:
+            target_index = index
+
+    if target_index < 0 or target_index >= len(enum_values):
         logger.error("Couldn't set enum value for %s to '%s' (choices: %s)"
-                     % (mixer_elem.mixer(), name, str(values)))
+                     % (mixer_elem.mixer(), enum_value, str(enum_values)))
         return
 
-    logger.debug("Setting %s to %s (index %d)" % (mixer_elem.mixer(), name, index))
-    mixer_elem.setenum(index)
+    logger.debug("Setting %s from %s [%d] to %s [%d]" %
+                 (mixer_elem.mixer(), current, current_index, enum_value, target_index))
+    mixer_elem.setenum(target_index)
 
 
 class Output:
