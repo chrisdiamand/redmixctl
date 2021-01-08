@@ -59,6 +59,8 @@ class MixerTab(wx.Window):
         pos = 3
         sizer.AddSpacer(10)
         for inpt in self.iface.get_inputs():
+            if not inpt.is_monitored():
+                continue
             fader = Fader(self, inpt)
 
             sizer.Add(fader)
@@ -81,7 +83,7 @@ class MixerTabs(wx.Notebook):
 class CommonSettingsPanel(wx.Panel):
     def __init__(self, parent, iface):
         wx.Panel.__init__(self, parent)
-        self.Show()
+        self.iface = iface
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -94,11 +96,24 @@ class CommonSettingsPanel(wx.Panel):
             if source.is_monitored():
                 enabled_sources += [source.name]
 
-        monitorable_inputs = wx.CheckListBox(self, choices=choices)
-        monitorable_inputs.SetCheckedStrings(enabled_sources)
+        self.monitorable_inputs = wx.CheckListBox(self, choices=choices)
+        self.monitorable_inputs.SetCheckedStrings(enabled_sources)
+        self.Bind(wx.EVT_CHECKLISTBOX, self.monitorable_inputs_changed, self.monitorable_inputs)
 
-        sizer.Add(monitorable_inputs)
+        sizer.Add(self.monitorable_inputs)
         self.SetSizerAndFit(sizer)
+
+        self.Show()
+
+    def monitorable_inputs_changed(self, event):
+        name = event.GetString()
+        index = event.GetInt()
+        enabled = self.monitorable_inputs.IsChecked(index)
+        if enabled:
+            logger.info("%s enabled", name)
+        else:
+            logger.info("%s disabled", name)
+        source = self.iface.get_inputs()[index]
 
 
 class MainWindow(wx.Frame):
