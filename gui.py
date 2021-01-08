@@ -78,13 +78,36 @@ class MixerTabs(wx.Notebook):
             self.AddPage(page, output.name)
 
 
+class CommonSettingsPanel(wx.Panel):
+    def __init__(self, parent, iface):
+        wx.Panel.__init__(self, parent)
+        self.Show()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        sizer.Add(wx.StaticText(self, label="Inputs to monitor"))
+
+        choices = [source.name for source in iface.get_inputs()]
+        monitorable_inputs = wx.CheckListBox(self, choices=choices)
+        #self.monitorable_inputs = []
+        #for source in iface.get_inputs():
+        #    monitorable_input = wx.CheckBox(self, label=source.name)
+        #    sizer.Add(monitorable_input)
+        #    self.monitorable_inputs += [monitorable_input]
+
+        sizer.Add(monitorable_inputs)
+        self.SetSizerAndFit(sizer)
+
+
 class MainWindow(wx.Frame):
     def __init__(self, iface):
         wx.Frame.__init__(self, None, wx.ID_ANY, "Scarlett Mixer")
 
+        self.settings = CommonSettingsPanel(self, iface)
         self.tabs = MixerTabs(self, iface)
 
-        sizer = wx.BoxSizer()
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.settings)
         sizer.Add(self.tabs)
         self.SetSizerAndFit(sizer)
 
