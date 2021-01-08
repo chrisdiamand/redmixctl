@@ -38,6 +38,14 @@ class Source:
             mixer_elem = interface.mixer_elems[pcm_input]
             set_enum_value(mixer_elem, name)
 
+    def is_monitored(self) -> bool:
+        """Return true if this input is used by a mixer input"""
+        for mixer_input in self.interface.model.mixer_inputs:
+            mixer_elem = self.interface.mixer_elems[mixer_input]
+            current_value, _ = mixer_elem.getenum()
+            if current_value == self.name:
+                return True
+
 
 def set_enum_value(mixer_elem, name):
     values = mixer_elem.getenum()[1]

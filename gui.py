@@ -87,13 +87,15 @@ class CommonSettingsPanel(wx.Panel):
 
         sizer.Add(wx.StaticText(self, label="Inputs to monitor"))
 
-        choices = [source.name for source in iface.get_inputs()]
+        choices = []
+        enabled_sources = []
+        for source in iface.get_inputs():
+            choices += [source.name]
+            if source.is_monitored():
+                enabled_sources += [source.name]
+
         monitorable_inputs = wx.CheckListBox(self, choices=choices)
-        #self.monitorable_inputs = []
-        #for source in iface.get_inputs():
-        #    monitorable_input = wx.CheckBox(self, label=source.name)
-        #    sizer.Add(monitorable_input)
-        #    self.monitorable_inputs += [monitorable_input]
+        monitorable_inputs.SetCheckedStrings(enabled_sources)
 
         sizer.Add(monitorable_inputs)
         self.SetSizerAndFit(sizer)
