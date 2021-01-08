@@ -2,11 +2,6 @@
 # PYTHON_ARGCOMPLETE_OK
 
 
-# Functions to detect a mixer-compatible audio interface and match its
-# available control elements (i.e. the controls shown by alsamixer) to a JSON
-# schema.
-
-
 try:
     import argcomplete
 except ImportError:
@@ -21,7 +16,7 @@ import sys
 import typing
 
 
-logger = logging.getLogger("ScarlettMixer.redcard")
+logger = logging.getLogger("dump_mixer_controls")
 
 
 def is_volume_range(r):
@@ -70,9 +65,35 @@ def mixer_element_to_json(name: str, elem: alsaaudio.Mixer):
     return ret
 
 
-def cmd_describe(args):
-    """List the available control elements for a named interface and their
-    potential values"""
+def get_card_indexes() -> typing.List[str]:
+    return ["hw:" + str(i) for i in alsaaudio.card_indexes()]
+
+
+def parse_args():
+    desc = ("Detect all available mixer control elements and dump as JSON. This "
+            "helps to support and test different hardware without requiring it "
+            "to be physically present")
+    ap = argparse.ArgumentParser(description=desc)
+
+    ap.add_argument("interface", type=str, choices=get_card_indexes())
+    ap.add_argument("--output", "-o", type=argparse.FileType("wt"))
+
+    if argcomplete:
+        argcomplete.autocomplete(ap)
+
+    args = ap.parse_args()
+
+    if not args.output:
+        args.output = sys.stdout
+
+    return args
+
+
+def main():
+    """List the available control elements and their potential values"""
+
+    logging.basicConfig(level=logging.INFO)
+    args = parse_args()
     card_indexes: typing.List[int] = alsaaudio.card_indexes()
 
     m = re.match(r'hw:([0-9]+)', args.interface, re.IGNORECASE)
@@ -97,33 +118,7 @@ def cmd_describe(args):
         elem = alsaaudio.Mixer(control=name, cardindex=card_index)
         mixer_elems[name] = mixer_element_to_json(name, elem)
 
-    json.dump(mixer_elems, sys.stdout, sort_keys=True, indent=4)
-
-
-def get_card_indexes() -> typing.List[str]:
-    return ["hw:" + str(i) for i in alsaaudio.card_indexes()]
-
-
-def parse_args():
-    ap = argparse.ArgumentParser()
-
-    subparsers = ap.add_subparsers(dest="COMMAND")
-    subparsers.required = True
-
-    describe = subparsers.add_parser("describe")
-    describe.add_argument("interface", type=str, choices=get_card_indexes())
-    describe.set_defaults(func=cmd_describe)
-
-    if argcomplete:
-        argcomplete.autocomplete(ap)
-
-    return ap.parse_args()
-
-
-def main():
-    logging.basicConfig(level=logging.INFO)
-    args = parse_args()
-    args.func(args)
+    json.dump(mixer_elems, args.output, sort_keys=True, indent=4)
 
 
 if __name__ == "__main__":
