@@ -90,7 +90,7 @@ class MixerTabs(wx.Notebook):
         wx.Notebook.__init__(self, parent)
 
         self.mix_tabs = []
-        for mix_name in iface.model.mixes:
+        for mix_name in iface.get_mixes():
             mix_tab = MixerTab(self, iface, mix_name)
             self.mix_tabs += [mix_tab]
             self.AddPage(mix_tab, mix_name)
@@ -155,7 +155,7 @@ class OutputSettingsPanel(wx.Panel):
         for output in self.iface.get_outputs():
             outputs_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=output.name), 50,
             wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_RIGHT)
-            mix_selector = wx.Choice(self, choices=self.iface.model.mixes + ["Off"])
+            mix_selector = wx.Choice(self, choices=self.iface.get_mixes() + ["Off"])
             outputs_sizer.Add(mix_selector, 0, wx.ALIGN_CENTRE)
 
         panel_sizer.Add(outputs_sizer, flag=wx.ALL, border=5)

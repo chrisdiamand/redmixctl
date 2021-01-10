@@ -168,6 +168,9 @@ class Interface:
     def get_outputs(self):
         return self.outputs
 
+    def get_mixes(self):
+        return self.model.mixes
+
     def init_monitorable_sources(self):
         """Initialise objects representing the physical inputs and PCM outputs that
         can be included in the mix"""
