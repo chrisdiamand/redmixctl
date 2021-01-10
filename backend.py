@@ -214,9 +214,3 @@ class Interface:
             mixer_elem: alsaaudio.Mixer = self.mixer_elems[name]
             mixer_input: MixerInput = MixerInput(self, name, mixer_elem)
             self.mixer_inputs.append(mixer_input)
-
-    def find_mixer_elem(self, name):
-        for elem in self.mixer_elems:
-            if elem.mixer() == name:
-                return elem
-        return None
