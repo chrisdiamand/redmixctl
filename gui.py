@@ -112,9 +112,11 @@ class InputSettingsPanel(wx.Panel):
         logger.debug("Mixer input options: %s", ", ".join(choices))
 
         for mixer_input in self.iface.get_mixer_inputs():
-            selection_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=mixer_input), 50,
+            selection_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=mixer_input.name), 50,
                                 wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_CENTRE)
             selector = wx.Choice(self, choices=choices)
+            index_of_current_value = selector.FindString(mixer_input.get_value())
+            selector.SetSelection(index_of_current_value)
             selection_sizer.Add(selector, 0, wx.ALIGN_CENTRE)
 
         panel_sizer.Add(selection_sizer, flag=wx.ALL, border=5)

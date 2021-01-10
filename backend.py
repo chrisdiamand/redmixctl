@@ -116,6 +116,16 @@ class Output:
         self.name = name
 
 
+class MixerInput:
+    def __init__(self, interface, name, mixer_elem):
+        self.interface = interface
+        self.name = name
+        self.mixer_elem = mixer_elem
+
+    def get_value(self):
+        return self.mixer_elem.getenum()[0]
+
+
 def find_card_index(model_name: str) -> int:
     ret = list()
     card_indexes = alsaaudio.card_indexes()
@@ -149,6 +159,7 @@ class Interface:
 
         self.init_monitorable_sources()
         self.init_outputs()
+        self.init_mixer_inputs()
 
     def validate_mixer_elems(self):
         """Verify that all the mixer elements specified in the model actually exist"""
@@ -172,7 +183,7 @@ class Interface:
         return self.model.mixes
 
     def get_mixer_inputs(self):
-        return self.model.mixer_inputs
+        return self.mixer_inputs
 
     def init_monitorable_sources(self):
         """Initialise objects representing the physical inputs and PCM outputs that
@@ -195,6 +206,13 @@ class Interface:
             mixer_elem = self.mixer_elems[name]
             output = Output(self, name)
             self.outputs += [output]
+
+    def init_mixer_inputs(self):
+        self.mixer_inputs: list[MixerInput] = []
+        for name in self.model.mixer_inputs:
+            mixer_elem: alsaaudio.Mixer = self.mixer_elems[name]
+            mixer_input: MixerInput = MixerInput(self, name, mixer_elem)
+            self.mixer_inputs.append(mixer_input)
 
     def find_mixer_elem(self, name):
         for elem in self.mixer_elems:
