@@ -111,9 +111,10 @@ def set_enum_value(mixer_elem: alsaaudio.Mixer, enum_value):
 
 
 class Output:
-    def __init__(self, interface, name):
+    def __init__(self, interface, name, mixer_elem):
         self.interface = interface
         self.name = name
+        self.mixer_elem = mixer_elem
 
 
 class MixerInput:
@@ -204,7 +205,7 @@ class Interface:
 
         for name in self.model.physical_outputs:
             mixer_elem = self.mixer_elems[name]
-            output = Output(self, name)
+            output = Output(self, name, mixer_elem)
             self.outputs += [output]
 
     def init_mixer_inputs(self):

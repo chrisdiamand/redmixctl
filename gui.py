@@ -17,6 +17,7 @@
 
 
 from __future__ import print_function
+import alsaaudio
 import logging
 import wx
 
@@ -24,6 +25,16 @@ import backend
 import version
 
 logger = logging.getLogger(version.NAME + "." + __name__)
+
+
+class EnumMixerElemChoice(wx.Choice):
+    """wx.Choice which automatically displays and updates the value of an enum
+    mixer element"""
+    def __init__(self, parent, mixer_elem: alsaaudio.Mixer):
+        current, choices = mixer_elem.getenum()
+        wx.Choice.__init__(self, parent, choices=choices)
+        index_of_current_value = self.FindString(current)
+        self.SetSelection(index_of_current_value)
 
 
 class Fader(wx.Window):
@@ -106,17 +117,10 @@ class InputSettingsPanel(wx.Panel):
 
         selection_sizer = wx.GridSizer(2)
 
-        self.outputs = []
-        choices = ["Off"] + [i.name for i in iface.get_inputs()]
-
-        logger.debug("Mixer input options: %s", ", ".join(choices))
-
         for mixer_input in self.iface.get_mixer_inputs():
             selection_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=mixer_input.name), 50,
                                 wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_CENTRE)
-            selector = wx.Choice(self, choices=choices)
-            index_of_current_value = selector.FindString(mixer_input.get_value())
-            selector.SetSelection(index_of_current_value)
+            selector = EnumMixerElemChoice(self, mixer_input.mixer_elem)
             selection_sizer.Add(selector, 0, wx.ALIGN_CENTRE)
 
         panel_sizer.Add(selection_sizer, flag=wx.ALL, border=5)
@@ -158,7 +162,7 @@ class OutputSettingsPanel(wx.Panel):
         for output in self.iface.get_outputs():
             outputs_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=output.name), 50,
                               wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_RIGHT)
-            mix_selector = wx.Choice(self, choices=self.iface.get_mixes() + ["Off"])
+            mix_selector = EnumMixerElemChoice(self, output.mixer_elem)
             outputs_sizer.Add(mix_selector, 0, wx.ALIGN_CENTRE)
 
         panel_sizer.Add(outputs_sizer, flag=wx.ALL, border=5)
