@@ -19,6 +19,7 @@
 from __future__ import print_function
 import alsaaudio
 import logging
+import typing
 import wx
 
 import backend
@@ -30,9 +31,10 @@ logger = logging.getLogger(version.NAME + "." + __name__)
 class EnumMixerElemChoice(wx.Choice):
     """wx.Choice which automatically displays and updates the value of an enum
     mixer element"""
-    def __init__(self, parent, mixer_elem: alsaaudio.Mixer):
+    def __init__(self, parent, mixer_elem: alsaaudio.Mixer, on_change: typing.Callable[[], None]=None):
         self.name = mixer_elem.mixer()
         self.mixer_elem = mixer_elem
+        self.extra_on_change = on_change
         current, choices = mixer_elem.getenum()
 
         wx.Choice.__init__(self, parent, choices=choices)
@@ -45,12 +47,15 @@ class EnumMixerElemChoice(wx.Choice):
         logger.debug("%s selection changed to %s", self.name, value)
         backend.set_enum_value(self.mixer_elem, value)
 
+        if self.extra_on_change:
+            self.extra_on_change()
+
 
 class Fader(wx.Window):
-    def __init__(self, parent, source):
+    def __init__(self, parent, mixer_elem):
         wx.Window.__init__(self, parent)
 
-        self.source = source
+        self.mixer_elem = mixer_elem
         self.parent = parent
 
         sizer = wx.GridBagSizer()
@@ -59,25 +64,37 @@ class Fader(wx.Window):
 
         sizer.Add(slider, (1, 1), span=(10, 3), flag=wx.EXPAND)
 
-        label = wx.StaticText(self, wx.ID_ANY, label=source.name)
-        sizer.Add(label, (12, 1))
+        self.label = wx.StaticText(self, wx.ID_ANY, label=mixer_elem.mixer())
+        sizer.Add(self.label, (12, 1))
 
         self.SetSizerAndFit(sizer)
-        self.Hide()
+        self.Show(True)
+
+    def set_label(self, label):
+        current_label = self.label.GetLabel()
+        if current_label != label:
+            logger.debug("Setting label for %s control from '%s' to '%s'",
+                         self.mixer_elem.mixer(), current_label, label)
+        self.label.SetLabel(label)
+        self.label.Refresh()
+        self.Refresh()
 
     def update(self, event):
-        logger.info("%s changed to %d", self.source.name, event.GetInt())
+        logger.info("%s [%s] changed to %d", self.label.GetLabel(), self.mixer_elem.mixer(), event.GetInt())
 
 
 class MixerTab(wx.Window):
-    def __init__(self, parent, iface, output):
+    def __init__(self, parent, iface: backend.Interface, mix: backend.Mix):
         wx.Window.__init__(self, parent)
 
         self.iface = iface
-        self.output = output
+        self.mix = mix
         self.parent = parent
+
+        assert len(mix.mixer_elems) == len(iface.get_mixer_inputs())
+
         self.initialize()
-        self.update()
+        self.update_fader_names()
 
     def initialize(self):
         self.sizer = wx.BoxSizer()
@@ -85,8 +102,8 @@ class MixerTab(wx.Window):
         pos = 3
         self.sizer.AddSpacer(10)
         self.faders = []
-        for source in self.iface.get_inputs():
-            fader = Fader(self, source)
+        for mixer_elem in self.mix.mixer_elems:
+            fader = Fader(self, mixer_elem)
             self.faders.append(fader)
 
             self.sizer.Add(fader)
@@ -96,13 +113,19 @@ class MixerTab(wx.Window):
         self.SetSizerAndFit(self.sizer)
         self.Show(True)
 
-    def update(self):
-        for fader in self.faders:
-            if fader.source.is_monitored():
-                fader.Show()
-            else:
-                fader.Hide()
-        self.Fit()
+    def update_fader_names(self):
+        """This is called when the input sources are changed - we need to go
+        through each fader and change the caption if it's now connected to
+        something different.
+        """
+        for i in range(0, len(self.faders)):
+            input_connection_mixer_elem = self.iface.get_mixer_inputs()[i]
+            mixer_input_source = input_connection_mixer_elem.mixer_elem.getenum()[0]
+            self.faders[i].set_label(mixer_input_source)
+
+        self.Layout()
+        self.Refresh()
+        self.Update()
 
 
 class MixerTabs(wx.Notebook):
@@ -110,10 +133,10 @@ class MixerTabs(wx.Notebook):
         wx.Notebook.__init__(self, parent)
 
         self.mix_tabs = []
-        for mix_name in iface.get_mixes():
-            mix_tab = MixerTab(self, iface, mix_name)
+        for mix in iface.get_mixes():
+            mix_tab = MixerTab(self, iface, mix)
             self.mix_tabs += [mix_tab]
-            self.AddPage(mix_tab, mix_name)
+            self.AddPage(mix_tab, mix.name)
 
 
 class InputSettingsPanel(wx.Panel):
@@ -129,7 +152,7 @@ class InputSettingsPanel(wx.Panel):
         for mixer_input in self.iface.get_mixer_inputs():
             selection_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=mixer_input.name), 50,
                                 wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_CENTRE)
-            selector = EnumMixerElemChoice(self, mixer_input.mixer_elem)
+            selector = EnumMixerElemChoice(self, mixer_input.mixer_elem, on_change=self.input_settings_changed)
             selection_sizer.Add(selector, 0, wx.ALIGN_CENTRE)
 
         panel_sizer.Add(selection_sizer, flag=wx.ALL, border=5)
@@ -137,24 +160,11 @@ class InputSettingsPanel(wx.Panel):
         self.SetSizerAndFit(panel_sizer)
         self.Show()
 
-    def monitorable_inputs_changed(self, event):
-        name = event.GetString()
-        index = event.GetInt()
-        enabled = self.monitorable_inputs.IsChecked(index)
-        if enabled:
-            logger.info("%s enabled", name)
-        else:
-            logger.info("%s disabled", name)
-
-        source = self.iface.get_inputs()[index]
-        if enabled:
-            source.add_to_monitored_inputs()
-        else:
-            source.remove_from_monitored_inputs()
-
+    def input_settings_changed(self):
         mix_tabs = self.app.frame.tabs.mix_tabs
         for mix_tab in mix_tabs:
-            mix_tab.update()
+            mix_tab.update_fader_names()
+            mix_tab.Update()
 
 
 class OutputSettingsPanel(wx.Panel):

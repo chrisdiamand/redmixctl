@@ -46,49 +46,6 @@ class Source:
             if current_value == self.name:
                 self.mixer_input = mixer_input
 
-    def is_monitored(self) -> bool:
-        """Return true if this input is used by a mixer input"""
-        return True if self.mixer_input else False
-
-    def add_to_monitored_inputs(self):
-        logger.debug("Request to start monitoring %s", self.name)
-
-        if self.mixer_input:
-            logger.warn("add_to_monitored_inputs(%s) called but already connected to %s", self.name, self.mixer_input)
-            return
-
-        # TODO: Improve this to keep the ordering sane
-        # Find a free mixer input
-        for mixer_input in self.interface.model.mixer_inputs:
-            mixer_elem = self.interface.mixer_elems[mixer_input]
-            current_value, _ = mixer_elem.getenum()
-            if current_value == "Off":
-                self.mixer_input = mixer_input
-                set_enum_value(mixer_elem, self.name)
-                break
-
-        if not self.mixer_input:
-            logger.error("Could not add %s to monitor mix: No free mixer inputs!", self.name)
-            logger.error("Mixer inputs are currently used by:")
-            for mixer_input in self.interface.model.mixer_inputs:
-                mixer_elem = self.interface.mixer_elems[mixer_input]
-                logger.error(" - %s -> %s", mixer_elem.getenum()[0], mixer_elem.mixer())
-
-    def remove_from_monitored_inputs(self):
-        logger.debug("Request to stop monitoring %s", self.name)
-
-        if not self.mixer_input:
-            logger.warn("remove_from_monitored_inputs(%s) called but already disconnected", self.name)
-
-        for mixer_input in self.interface.model.mixer_inputs:
-            mixer_elem = self.interface.mixer_elems[mixer_input]
-            current_value, _ = mixer_elem.getenum()
-            if current_value == self.name:
-                self.mixer_input = mixer_input
-                set_enum_value(mixer_elem, "Off")
-
-        self.mixer_input = None
-
 
 def set_enum_value(mixer_elem: alsaaudio.Mixer, enum_value):
     current, enum_values = mixer_elem.getenum()
@@ -127,6 +84,16 @@ class MixerInput:
         return self.mixer_elem.getenum()[0]
 
 
+class Mix:
+    def __init__(self, interface, name, input_volume_control_names):
+        self.interface = interface
+        self.name = name
+        self.mixer_elems = []
+        for input_volume_control_name in input_volume_control_names:
+            mixer_elem = interface.mixer_elems[input_volume_control_name]
+            self.mixer_elems.append(mixer_elem)
+
+
 def find_card_index(model_name: str) -> int:
     ret = list()
     card_indexes = alsaaudio.card_indexes()
@@ -161,6 +128,7 @@ class Interface:
         self.init_monitorable_sources()
         self.init_outputs()
         self.init_mixer_inputs()
+        self.init_mixes()
 
     def validate_mixer_elems(self):
         """Verify that all the mixer elements specified in the model actually exist"""
@@ -173,7 +141,6 @@ class Interface:
             current, enum_values = elem.getenum()
             assert set(enum_values) == source_enum_values
 
-
     def get_inputs(self):
         return self.sources
 
@@ -181,7 +148,7 @@ class Interface:
         return self.outputs
 
     def get_mixes(self):
-        return list(sorted(self.model.mixes.keys()))
+        return self.mixes
 
     def get_mixer_inputs(self):
         return self.mixer_inputs
@@ -214,3 +181,9 @@ class Interface:
             mixer_elem: alsaaudio.Mixer = self.mixer_elems[name]
             mixer_input: MixerInput = MixerInput(self, name, mixer_elem)
             self.mixer_inputs.append(mixer_input)
+
+    def init_mixes(self):
+        self.mixes = []
+        for mix_name in sorted(self.model.mixes):
+            input_volume_control_names = self.model.mixes[mix_name]
+            self.mixes.append(Mix(self, mix_name, input_volume_control_names))
