@@ -192,7 +192,7 @@ class OutputSettingsPanel(wx.Panel):
 
 class MainWindow(wx.Frame):
     def __init__(self, app, iface):
-        wx.Frame.__init__(self, None, wx.ID_ANY, "Scarlett Mixer")
+        wx.Frame.__init__(self, None, wx.ID_ANY, "redmixctl")
 
         self.input_settings = InputSettingsPanel(self, app, iface)
         self.tabs = MixerTabs(self, iface)

@@ -17,4 +17,4 @@
 
 
 VERSION = "0.0.2"
-NAME = "scarlettmixer"
+NAME = "redmixctl"
