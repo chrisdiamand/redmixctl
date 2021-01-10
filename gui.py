@@ -31,10 +31,19 @@ class EnumMixerElemChoice(wx.Choice):
     """wx.Choice which automatically displays and updates the value of an enum
     mixer element"""
     def __init__(self, parent, mixer_elem: alsaaudio.Mixer):
+        self.name = mixer_elem.mixer()
+        self.mixer_elem = mixer_elem
         current, choices = mixer_elem.getenum()
+
         wx.Choice.__init__(self, parent, choices=choices)
+        self.Bind(wx.EVT_CHOICE, self.on_change)
         index_of_current_value = self.FindString(current)
         self.SetSelection(index_of_current_value)
+
+    def on_change(self, event):
+        value = event.GetString()
+        logger.debug("%s selection changed to %s", self.name, value)
+        backend.set_enum_value(self.mixer_elem, value)
 
 
 class Fader(wx.Window):
