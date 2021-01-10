@@ -167,7 +167,7 @@ class Interface:
 
         # Every sink (physical output or mixer input) should be an enum, and should
         # have every physical input, mix, and output PCM as a possible value.
-        source_enum_values = set(["Off"] + self.model.physical_inputs + self.model.mixes + self.model.pcm_outputs)
+        source_enum_values = set(["Off"] + self.model.physical_inputs + list(self.model.mixes.keys()) + self.model.pcm_outputs)
         for output in self.model.physical_outputs + self.model.mixer_inputs:
             elem = self.mixer_elems[output]
             current, enum_values = elem.getenum()
@@ -181,7 +181,7 @@ class Interface:
         return self.outputs
 
     def get_mixes(self):
-        return self.model.mixes
+        return list(sorted(self.model.mixes.keys()))
 
     def get_mixer_inputs(self):
         return self.mixer_inputs

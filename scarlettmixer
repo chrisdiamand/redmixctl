@@ -83,7 +83,7 @@ class Model():
             "pcm_inputs": [str],
             "physical_outputs": [str],
             "pcm_outputs": [str],
-            "mixes": [str],
+            "mixes": {str: [str]},
             "mixer_inputs": [str],
         })
         validated = s.validate(data)
