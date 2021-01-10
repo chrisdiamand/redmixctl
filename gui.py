@@ -102,22 +102,24 @@ class InputSettingsPanel(wx.Panel):
         self.app = app
         self.iface = iface
 
-        sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Inputs to monitor")
+        panel_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Mixer inputs")
 
-        choices = []
-        enabled_sources = []
-        for source in iface.get_inputs():
-            choices += [source.name]
-            if source.is_monitored():
-                enabled_sources += [source.name]
+        selection_sizer = wx.GridSizer(2)
 
-        self.monitorable_inputs = wx.CheckListBox(self, choices=choices)
-        self.monitorable_inputs.SetCheckedStrings(enabled_sources)
-        self.Bind(wx.EVT_CHECKLISTBOX, self.monitorable_inputs_changed, self.monitorable_inputs)
+        self.outputs = []
+        choices = ["Off"] + [i.name for i in iface.get_inputs()]
 
-        sizer.Add(self.monitorable_inputs, flag=wx.ALL | wx.EXPAND, border=5)
-        self.SetSizerAndFit(sizer)
+        logger.debug("Mixer input options: %s", ", ".join(choices))
 
+        for mixer_input in self.iface.get_mixer_inputs():
+            selection_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=mixer_input), 50,
+                                wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_CENTRE)
+            selector = wx.Choice(self, choices=choices)
+            selection_sizer.Add(selector, 0, wx.ALIGN_CENTRE)
+
+        panel_sizer.Add(selection_sizer, flag=wx.ALL, border=5)
+
+        self.SetSizerAndFit(panel_sizer)
         self.Show()
 
     def monitorable_inputs_changed(self, event):
@@ -147,14 +149,13 @@ class OutputSettingsPanel(wx.Panel):
         self.iface = iface
 
         panel_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Outputs")
-        #panel_sizer.Add(wx.StaticText(self, label="Outputs"))
 
         outputs_sizer = wx.GridSizer(4)
 
         self.outputs = []
         for output in self.iface.get_outputs():
             outputs_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=output.name), 50,
-            wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_RIGHT)
+                              wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_RIGHT)
             mix_selector = wx.Choice(self, choices=self.iface.get_mixes() + ["Off"])
             outputs_sizer.Add(mix_selector, 0, wx.ALIGN_CENTRE)
 
