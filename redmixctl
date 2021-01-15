@@ -23,6 +23,7 @@ except ImportError:
     argcomplete = None
 
 
+import alsaaudio
 import argparse
 import json
 import os
@@ -30,6 +31,10 @@ import schema
 import sys
 import typing
 
+
+import backend
+import gui
+import models
 import version
 
 logger = None
@@ -90,25 +95,16 @@ class Model():
 
         self.__dict__.update(validated)
 
-        # Each physical input should have a PCM input
-        assert len(self.physical_inputs) == len(self.pcm_inputs)
-        # ... and the same for outputs
-        assert len(self.physical_outputs) == len(self.pcm_outputs)
-
-        # Different models may have different numbers of mixes. There are
-        # usually the same number of mixer inputs as physical inputs, but we
-        # shouldn't assume that's the case; we need flexibility here anyway
-        # to allow e.g. sacrificing monitoring of a physical input in favour of
-        # a signal from the PC, e.g. a click track.
 
 
 def parse_args():
     ap = argparse.ArgumentParser()
 
-    ap.add_argument("-l", "--logfile",
+    ap.add_argument("--logfile", "-l",
                     default=os.path.expanduser("~/.local/share/{0}/{0}.log".format(version.NAME)))
 
-    ap.add_argument("--model", "-m", choices=["18i20_gen2"], required=True)
+    ap.add_argument("--model", "-m", choices=models.all_canonical_names())
+    ap.add_argument("--card-index", "-c", type=int, choices=alsaaudio.card_indexes())
 
     if argcomplete:
         argcomplete.autocomplete(ap)
@@ -116,15 +112,56 @@ def parse_args():
     return ap.parse_args()
 
 
+def find_supported_card(args) -> (int, models.Model):
+    supported_cards: dict[int, (dict[str, alsaaudio.Mixer], model.Model)] = dict()
+    for model in models.MODELS:
+        card_index, mixer_elems = backend.find_card_index(model)
+        if card_index is not None:
+            supported_cards[card_index] = (mixer_elems, model)
+
+    chosen_card_index = None
+
+    if len(supported_cards) == 0:
+        logger.error("No supported models found. Supported models are: %s",
+                     ", ".join(models.all_canonical_names()))
+        sys.exit(1)
+    elif len(supported_cards) >= 2:
+        if args.card_index:
+            if args.card in supported_cards:
+                chosen_card_index = args.card
+            else:
+                logger.error("Card %d requested, but is not a supported card",
+                             args.card)
+                sys.exit(1)
+        elif args.model:
+            for card_index in supported_cards:
+                if supported_cards[card_index][1].canonical_name == args.model:
+                    chosen_card_index = card_index
+            if not chosen_card_index:
+                logger.error("Model %s requested, but no matching cards were found",
+                             args.model)
+                sys.exit(1)
+        else:
+            logger.debug("Multiple supported cards found:")
+            for card_index in supported_cards:
+                model = supported_cards[card_index][1]
+                logger.error("%d: %s [%s]",
+                             card_index, model.canonical_name, model.name)
+            sys.exit(1)
+    elif len(supported_cards) == 1:
+        chosen_card_index = list(supported_cards.keys())[0]
+
+    mixer_elems, model = supported_cards[chosen_card_index]
+    return chosen_card_index, mixer_elems, model
+
+
 def main():
     args = parse_args()
     init_logging(args.logfile)
 
-    import backend
-    import gui
+    card_index, mixer_elems, model = find_supported_card(args)
 
-    model = Model(args.model)
-    iface = backend.Interface(model)
+    iface = backend.Interface(card_index, mixer_elems, model)
     app = gui.MixerApp(iface)
     app.MainLoop()
 

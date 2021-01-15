@@ -21,8 +21,10 @@ import alsaaudio
 import logging
 import re
 import sys
+import typing
 
 import version
+import models
 
 logger = logging.getLogger(version.NAME + "." + __name__)
 
@@ -94,52 +96,50 @@ class Mix:
             self.mixer_elems.append(mixer_elem)
 
 
-def find_card_index(model_name: str) -> int:
+def get_mixer_elems(card_index: int) -> typing.Dict[str, alsaaudio.Mixer]:
+    # Get the mixer element for each available mixer control
+    mixer_elems: dict[str, alsaaudio.Mixer] = {}
+    for mixer_elem_name in alsaaudio.mixers(cardindex=card_index):
+        logger.debug("Found mixer element '%s'" % mixer_elem_name)
+        elem = alsaaudio.Mixer(control=mixer_elem_name, cardindex=card_index)
+        assert mixer_elem_name not in mixer_elems
+        mixer_elems[mixer_elem_name] = elem
+    return mixer_elems
+
+
+def find_card_index(model: models.Model) \
+    -> (typing.Optional[int], typing.Optional[typing.Dict[str, alsaaudio.Mixer]]):
+
     ret = list()
     card_indexes = alsaaudio.card_indexes()
 
     for i in card_indexes:
         (name, _) = alsaaudio.card_name(i)
-        if name == model_name:
-            return i
+        if name == model.name:
+            logger.debug("Card %d matches model name %s [%s]",
+                         i, model.canonical_name, model.name)
+            mixer_elems = get_mixer_elems(i)
 
-    logger.error("No card '%s' found" % model_name)
-    logger.error("Available cards:")
-    for i in card_indexes:
-        logger.error(" - %s", alsaaudio.card_name(i)[0])
-    sys.exit(1)
+            if model.validate_mixer_elems(mixer_elems):
+                return i, mixer_elems
+            else:
+                logger.warning("Card %d [%s] does not match the %s model",
+                               i, name, model.canonical_name)
+                logger.warning("Are controls enabled in the kernel driver? You may need to run something like the following:")
+                logger.warning("  echo 'options snd_usb_audio device_setup=1' | sudo tee /etc/modprobe.d/scarlett-internal-mixer.conf")
+    return None, None
 
 
 class Interface:
-    def __init__(self, model):
+    def __init__(self, card_index, mixer_elems, model):
+        self.card_index = card_index
+        self.mixer_elems = mixer_elems
         self.model = model
-        self.card_index = find_card_index(model.name)
-
-        # Get the mixer element for each available mixer control
-        self.mixer_elems: dict[str, alsaaudio.Mixer] = {}
-        for name in alsaaudio.mixers(cardindex=self.card_index):
-            logger.debug("Found mixer element '%s'" % name)
-            elem = alsaaudio.Mixer(control=name, cardindex=self.card_index)
-            assert name not in self.mixer_elems
-            self.mixer_elems[name] = elem
-
-        self.validate_mixer_elems()
 
         self.init_monitorable_sources()
         self.init_outputs()
         self.init_mixer_inputs()
         self.init_mixes()
-
-    def validate_mixer_elems(self):
-        """Verify that all the mixer elements specified in the model actually exist"""
-
-        # Every sink (physical output or mixer input) should be an enum, and should
-        # have every physical input, mix, and output PCM as a possible value.
-        source_enum_values = set(["Off"] + self.model.physical_inputs + list(self.model.mixes.keys()) + self.model.pcm_outputs)
-        for output in self.model.physical_outputs + self.model.mixer_inputs:
-            elem = self.mixer_elems[output]
-            current, enum_values = elem.getenum()
-            assert set(enum_values) == source_enum_values
 
     def get_inputs(self):
         return self.sources

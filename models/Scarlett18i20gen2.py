@@ -1,6 +1,24 @@
-{
-    "name": "Scarlett 18i20 USB",
-    "physical_inputs": [
+# Copyright 2021 Chris Diamand
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from . import model
+
+class Scarlett18i20gen2(model.Model):
+    canonical_name = "18i20gen2"
+    name = "Scarlett 18i20 USB"
+    physical_inputs = [
         "Analogue 1",
         "Analogue 2",
         "Analogue 3",
@@ -19,8 +37,8 @@
         "ADAT 6",
         "ADAT 7",
         "ADAT 8"
-    ],
-    "pcm_inputs": [
+    ]
+    pcm_inputs = [
         "PCM 01",
         "PCM 02",
         "PCM 03",
@@ -39,8 +57,8 @@
         "PCM 16",
         "PCM 17",
         "PCM 18"
-    ],
-    "physical_outputs": [
+    ]
+    physical_outputs = [
         "Analogue Output 01",
         "Analogue Output 02",
         "Analogue Output 03",
@@ -61,8 +79,8 @@
         "ADAT Output 6",
         "ADAT Output 7",
         "ADAT Output 8"
-    ],
-    "pcm_outputs": [
+    ]
+    pcm_outputs = [
         "PCM 1",
         "PCM 2",
         "PCM 3",
@@ -83,8 +101,8 @@
         "PCM 18",
         "PCM 19",
         "PCM 20"
-    ],
-    "mixes": {
+    ]
+    mixes = {
         "Mix A": [
             "Mix A Input 01",
             "Mix A Input 02",
@@ -285,8 +303,8 @@
             "Mix J Input 17",
             "Mix J Input 18"
         ]
-    },
-    "mixer_inputs": [
+    }
+    mixer_inputs = [
         "Mixer Input 01",
         "Mixer Input 02",
         "Mixer Input 03",
@@ -306,4 +324,3 @@
         "Mixer Input 17",
         "Mixer Input 18"
     ]
-}
