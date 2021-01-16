@@ -16,26 +16,46 @@
 
 import alsaaudio
 import logging
+import typing
 
 
 logger = logging.getLogger("redmixctl." + __name__)
 
 
 class Model:
-    def __init__(self):
-        assert type(self.canonical_name) == str and self.canonical_name
-        assert type(self.name) == str and self.name
+    def __init__(self, *,
+                 canonical_name: str,
+                 name: str,
+                 physical_inputs: typing.List[str],
+                 pcm_inputs: typing.List[str],
+                 physical_outputs: typing.List[str],
+                 pcm_outputs: typing.List[str],
+                 mixes: typing.Dict[str, typing.List[str]],
+                 mixer_inputs: typing.List[str],
+        ):
+
+        assert canonical_name
+        assert name
 
         # Each physical input should have a PCM input
-        assert len(self.physical_inputs) == len(self.pcm_inputs)
+        assert len(physical_inputs) == len(pcm_inputs)
         # ... and the same for outputs
-        assert len(self.physical_outputs) == len(self.pcm_outputs)
+        assert len(physical_outputs) == len(pcm_outputs)
 
         # Different models may have different numbers of mixes. There are
         # usually the same number of mixer inputs as physical inputs, but we
         # shouldn't assume that's the case; we need flexibility here anyway
         # to allow e.g. sacrificing monitoring of a physical input in favour of
         # a signal from the PC, e.g. a click track.
+
+        self.canonical_name = canonical_name
+        self.name = name
+        self.physical_inputs = physical_inputs
+        self.pcm_inputs = pcm_inputs
+        self.physical_outputs = physical_outputs
+        self.pcm_outputs = pcm_outputs
+        self.mixes = mixes
+        self.mixer_inputs = mixer_inputs
 
     def validate_mixer_elems(self, mixer_elems):
         """Verify that all the mixer elements specified in the model actually exist"""

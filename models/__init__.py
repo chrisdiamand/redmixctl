@@ -16,12 +16,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from .model import Model
-from .Scarlett18i20gen2 import Scarlett18i20gen2
+import typing
 
-MODELS = [
-    Scarlett18i20gen2()
+
+from .model import Model
+from . import Scarlett18i20gen2
+
+
+MODELS: typing.List[Model] = [
+    Scarlett18i20gen2.Scarlett18i20gen2
 ]
 
-def all_canonical_names():
+
+def all_canonical_names() -> typing.List[str]:
     return [m.canonical_name for m in MODELS]
