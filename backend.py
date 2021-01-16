@@ -34,7 +34,7 @@ class CardNotFoundError(Exception):
 
 
 class Source:
-    def __init__(self, interface, name: str, pcm_input: str=None):
+    def __init__(self, interface, name: str, pcm_input: str = None):
         self.interface = interface
         self.name = name
 
@@ -112,7 +112,7 @@ def get_mixer_elems(card_index: int) -> typing.Dict[str, alsaaudio.Mixer]:
 
 
 def find_card_index(model: models.Model) \
-    -> typing.Tuple[int, typing.Dict[str, alsaaudio.Mixer]]:
+        -> typing.Tuple[int, typing.Dict[str, alsaaudio.Mixer]]:
 
     card_indexes = alsaaudio.card_indexes()
 
@@ -128,8 +128,10 @@ def find_card_index(model: models.Model) \
             else:
                 logger.warning("Card %d [%s] does not match the %s model",
                                i, name, model.canonical_name)
-                logger.warning("Are controls enabled in the kernel driver? You may need to run something like the following:")
-                logger.warning("  echo 'options snd_usb_audio device_setup=1' | sudo tee /etc/modprobe.d/scarlett-internal-mixer.conf")
+                logger.warning("Are controls enabled in the kernel driver? " +
+                               "You may need to run something like the following:")
+                logger.warning("  echo 'options snd_usb_audio device_setup=1' " +
+                               "| sudo tee /etc/modprobe.d/scarlett-internal-mixer.conf")
 
     raise CardNotFoundError()
 
@@ -168,7 +170,7 @@ class Interface:
             pcm_input = self.model.pcm_inputs[i]
             self.sources += [Source(self, name, pcm_input=pcm_input)]
 
-        for name  in self.model.pcm_outputs:
+        for name in self.model.pcm_outputs:
             self.sources += [Source(self, name)]
 
     def init_outputs(self):

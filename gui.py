@@ -31,7 +31,7 @@ logger = logging.getLogger(version.NAME + "." + __name__)
 class EnumMixerElemChoice(wx.Choice):
     """wx.Choice which automatically displays and updates the value of an enum
     mixer element"""
-    def __init__(self, parent, mixer_elem: alsaaudio.Mixer, on_change: typing.Callable[[], None]=None):
+    def __init__(self, parent, mixer_elem: alsaaudio.Mixer, on_change: typing.Callable[[], None] = None):
         self.name = mixer_elem.mixer()
         self.mixer_elem = mixer_elem
         self.extra_on_change = on_change
@@ -152,7 +152,8 @@ class InputSettingsPanel(wx.Panel):
         for mixer_input in self.iface.get_mixer_inputs():
             selection_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=mixer_input.name), 50,
                                 wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_CENTRE)
-            selector = EnumMixerElemChoice(self, mixer_input.mixer_elem, on_change=self.input_settings_changed)
+            selector = EnumMixerElemChoice(self, mixer_input.mixer_elem,
+                                           on_change=self.input_settings_changed)
             selection_sizer.Add(selector, 0, wx.ALIGN_CENTRE)
 
         panel_sizer.Add(selection_sizer, flag=wx.ALL, border=5)

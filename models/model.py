@@ -31,8 +31,7 @@ class Model:
                  physical_outputs: typing.List[str],
                  pcm_outputs: typing.List[str],
                  mixes: typing.Dict[str, typing.List[str]],
-                 mixer_inputs: typing.List[str],
-        ):
+                 mixer_inputs: typing.List[str]):
 
         assert canonical_name
         assert name
@@ -72,7 +71,8 @@ class Model:
             elem = mixer_elems[output]
             current, enum_values = elem.getenum()
             if set(enum_values) != source_enum_values:
-                logger.info("Source selections for output %s do not match expected values from model", output)
+                logger.info("Source selections for output %s do not match expected values from model",
+                            output)
                 logger.info("Expected: %s", ", ".join(sorted(source_enum_values)))
                 logger.info("Got: %s", ", ".join(sorted(enum_values)))
 

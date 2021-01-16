@@ -41,7 +41,7 @@ import version
 
 logger: logging.Logger = logging.getLogger("redmixctl")
 
-MAX_LOG_SIZE = 4 * 1024 * 1024 # 4 MB
+MAX_LOG_SIZE = 4 * 1024 * 1024  # 4 MB
 
 
 def init_logging(logfile):
@@ -52,10 +52,7 @@ def init_logging(logfile):
     stderr_logger.setLevel(logging.DEBUG)
     logger.addHandler(stderr_logger)
 
-    try:
-        os.makedirs(os.path.dirname(logfile))
-    except:
-        pass
+    os.makedirs(os.path.dirname(logfile), exist_ok=True)
     file_logger = logging.handlers.RotatingFileHandler(logfile,
                                                        maxBytes=MAX_LOG_SIZE,
                                                        backupCount=5)

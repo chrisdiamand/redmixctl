@@ -106,7 +106,7 @@ def main():
 
     if card_index not in card_indexes:
         logger.error("No such card index: '%d' (available: %s)", index,
-                      ", ".join([str(i) for i in card_indexes]))
+                     ", ".join([str(i) for i in card_indexes]))
         sys.exit(1)
 
     (name, longname) = alsaaudio.card_name(card_index)
