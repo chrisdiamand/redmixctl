@@ -18,7 +18,7 @@
 
 
 try:
-    import argcomplete
+    import argcomplete  # type: ignore
 except ImportError:
     argcomplete = None
 
@@ -26,8 +26,11 @@ except ImportError:
 import alsaaudio
 import argparse
 import json
+import logging
+import logging.handlers
 import os
 import sys
+import time
 import typing
 
 
@@ -36,17 +39,13 @@ import gui
 import models
 import version
 
-logger = None
+logger: logging.Logger = logging.getLogger("redmixctl")
+
 MAX_LOG_SIZE = 4 * 1024 * 1024 # 4 MB
 
 
 def init_logging(logfile):
-    import logging
-    import logging.handlers
-    import time
-
     global logger
-    logger = logging.getLogger(version.NAME)
     logger.setLevel(logging.DEBUG)
 
     stderr_logger = logging.StreamHandler()
@@ -84,14 +83,18 @@ def parse_args():
     return ap.parse_args()
 
 
-def find_supported_card(args) -> (int, models.Model):
-    supported_cards: dict[int, (dict[str, alsaaudio.Mixer], model.Model)] = dict()
-    for model in models.MODELS:
-        card_index, mixer_elems = backend.find_card_index(model)
-        if card_index is not None:
-            supported_cards[card_index] = (mixer_elems, model)
+def find_supported_card(args) -> typing.Tuple[int, typing.Dict[str, alsaaudio.Mixer], models.Model]:
 
-    chosen_card_index = None
+    supported_cards: typing.Dict[int, typing.Tuple[typing.Dict[str, alsaaudio.Mixer], models.Model]] = dict()
+
+    for model in models.MODELS:
+        try:
+            card_index, mixer_elems = backend.find_card_index(model)
+            supported_cards[card_index] = (mixer_elems, model)
+        except backend.CardNotFoundError:
+            continue
+
+    chosen_card_index: int = -1
 
     if len(supported_cards) == 0:
         logger.error("No supported models found. Supported models are: %s",

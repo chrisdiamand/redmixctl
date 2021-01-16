@@ -20,7 +20,7 @@ from __future__ import print_function
 import alsaaudio
 import logging
 import typing
-import wx
+import wx  # type: ignore
 
 import backend
 import version

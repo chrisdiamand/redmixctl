@@ -3,7 +3,7 @@
 
 
 try:
-    import argcomplete
+    import argcomplete  # type: ignore
 except ImportError:
     argcomplete = None
 
@@ -31,7 +31,7 @@ def mixer_element_to_json(name: str, elem: alsaaudio.Mixer):
         logger.warn("Mixer element has name '%s' but elem.mixer() returns '%s'",
                     name, elem.mixer())
 
-    ret = dict()
+    ret: typing.Dict[str, typing.Any] = dict()
 
     switchcap = elem.switchcap()
     if switchcap:

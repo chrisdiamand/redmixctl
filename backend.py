@@ -29,6 +29,10 @@ import models
 logger = logging.getLogger(version.NAME + "." + __name__)
 
 
+class CardNotFoundError(Exception):
+    pass
+
+
 class Source:
     def __init__(self, interface, name: str, pcm_input: str=None):
         self.interface = interface
@@ -98,7 +102,7 @@ class Mix:
 
 def get_mixer_elems(card_index: int) -> typing.Dict[str, alsaaudio.Mixer]:
     # Get the mixer element for each available mixer control
-    mixer_elems: dict[str, alsaaudio.Mixer] = {}
+    mixer_elems: typing.Dict[str, alsaaudio.Mixer] = {}
     for mixer_elem_name in alsaaudio.mixers(cardindex=card_index):
         logger.debug("Found mixer element '%s'" % mixer_elem_name)
         elem = alsaaudio.Mixer(control=mixer_elem_name, cardindex=card_index)
@@ -108,9 +112,8 @@ def get_mixer_elems(card_index: int) -> typing.Dict[str, alsaaudio.Mixer]:
 
 
 def find_card_index(model: models.Model) \
-    -> (typing.Optional[int], typing.Optional[typing.Dict[str, alsaaudio.Mixer]]):
+    -> typing.Tuple[int, typing.Dict[str, alsaaudio.Mixer]]:
 
-    ret = list()
     card_indexes = alsaaudio.card_indexes()
 
     for i in card_indexes:
@@ -127,7 +130,8 @@ def find_card_index(model: models.Model) \
                                i, name, model.canonical_name)
                 logger.warning("Are controls enabled in the kernel driver? You may need to run something like the following:")
                 logger.warning("  echo 'options snd_usb_audio device_setup=1' | sudo tee /etc/modprobe.d/scarlett-internal-mixer.conf")
-    return None, None
+
+    raise CardNotFoundError()
 
 
 class Interface:
