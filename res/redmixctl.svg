@@ -10,21 +10,19 @@
  <title>redmixctl</title>
  <g class="layer">
   <title>Layer 1</title>
-  <ellipse cx="64" cy="64" fill="#c9c9c9" id="svg_2" rx="60" ry="60" stroke="#000000" transform="matrix(1, 0, 0, 1, 0, 0)"/>
-  <ellipse cx="64" cy="64" fill="url(#svg_21)" id="svg_1" rx="50" ry="50" stroke="#000000" stroke-width="3"/>
-  <line fill="none" id="svg_4" stroke="#000000" stroke-width="3" x1="64" x2="64" y1="17" y2="38"/>
-  <line fill="none" id="svg_5" stroke="#000000" x1="64" x2="64" y1="4" y2="8"/>
-  <line fill="none" id="svg_6" stroke="#000000" x1="124" x2="120" y1="64" y2="64"/>
-  <line fill="none" id="svg_7" stroke="#000000" x1="4" x2="8" y1="64" y2="64"/>
-  <line fill="none" id="svg_8" stroke="#000000" x1="21.6" x2="24.4" y1="21.6" y2="24.4"/>
-  <line fill="none" id="svg_9" stroke="#000000" x1="106.4" x2="103.6" y1="21.6" y2="24.4"/>
-  <line fill="none" id="svg_10" stroke="#000000" x1="106.4" x2="103.6" y1="106.4" y2="103.6"/>
-  <line fill="none" id="svg_11" stroke="#000000" x1="21.6" x2="24.4" y1="106.4" y2="103.6"/>
-  <line fill="none" id="svg_23" stroke="#000000" x1="119.4" x2="115.7" y1="87" y2="85.4"/>
-  <line fill="none" id="svg_24" stroke="#000000" x1="8.6" x2="12.3" y1="41" y2="42.6"/>
-  <line fill="none" id="svg_25" stroke="#000000" x1="41" x2="42.5" y1="8.6" y2="12.3"/>
-  <line fill="none" id="svg_26" stroke="#000000" x1="87" x2="85.4" y1="8.6" y2="12.3"/>
-  <line fill="none" id="svg_27" stroke="#000000" x1="119.4" x2="115.7" y1="41" y2="42.6"/>
-  <line fill="none" id="svg_28" stroke="#000000" x1="8.6" x2="12.3" y1="87" y2="85.4"/>
+  <ellipse cx="64" cy="64" fill="#c9c9c9" id="svg_2" rx="60" ry="60" stroke="#000000" stroke-width="2" transform="matrix(1, 0, 0, 1, 0, 0)"/>
+  <ellipse cx="64" cy="64" fill="url(#svg_21)" id="svg_1" rx="42" ry="42" stroke="#000000" stroke-width="4"/>
+  <line fill="none" id="svg_4" stroke="#000000" stroke-width="5" transform="matrix(1, 0, 0, 1, 0, 0)" x1="64" x2="64" y1="26" y2="45"/>
+  <line fill="none" id="svg_5" stroke="#000000" stroke-width="2" transform="matrix(1, 0, 0, 1, 0, 0)" x1="64" x2="64" y1="4" y2="11"/>
+  <line fill="none" id="svg_6" stroke="#000000" stroke-width="2" transform="matrix(1, 0, 0, 1, 0, 0)" x1="124" x2="117" y1="64" y2="64"/>
+  <line fill="none" id="svg_7" stroke="#000000" stroke-width="2" transform="matrix(1, 0, 0, 1, 0, 0)" x1="4" x2="11" y1="64" y2="64"/>
+  <line fill="none" id="svg_8" stroke="#000000" stroke-width="2" transform="matrix(1, 0, 0, 1, 0, 0)" x1="34" x2="37.5" y1="12" y2="18.1"/>
+  <line fill="none" id="svg_10" stroke="#000000" stroke-width="2" transform="matrix(1, 0, 0, 1, 0, 0)" x1="94" x2="90.5" y1="116" y2="109.5"/>
+  <line fill="none" id="svg_11" stroke="#000000" stroke-width="2" transform="matrix(1, 0, 0, 1, 0, 0)" x1="34" x2="37.5" y1="116" y2="109.9"/>
+  <line fill="none" id="svg_23" stroke="#000000" stroke-width="2" transform="matrix(1, 0, 0, 1, 0, 0)" x1="116" x2="109.9" y1="94" y2="90.5"/>
+  <line fill="none" id="svg_24" stroke="#000000" stroke-width="2" transform="matrix(1, 0, 0, 1, 0, 0)" x1="12" x2="18.1" y1="34" y2="37.5"/>
+  <line fill="none" id="svg_26" stroke="#000000" stroke-width="2" transform="matrix(1, 0, 0, 1, 0, 0)" x1="94" x2="90.5" y1="12" y2="18.1"/>
+  <line fill="none" id="svg_27" stroke="#000000" stroke-width="2" transform="matrix(1, 0, 0, 1, 0, 0)" x1="116" x2="109.9" y1="34" y2="37.5"/>
+  <line fill="none" id="svg_28" stroke="#000000" stroke-width="2" transform="matrix(1, 0, 0, 1, 0, 0)" x1="12" x2="18.1" y1="94" y2="90.5"/>
  </g>
 </svg>
