@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=redmixctl
+Comment=Focusrite Scarlett Mixer Control
+TryExec=redmixctl
+Exec=redmixctl
+Icon=redmixctl
+Terminal=false
+Type=Application
+Categories=AudioVideo;Mixer;
