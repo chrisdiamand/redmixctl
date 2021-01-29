@@ -147,11 +147,13 @@ class InputSettingsPanel(wx.Panel):
 
         panel_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Mixer inputs")
 
-        selection_sizer = wx.GridSizer(2)
+        selection_sizer = wx.GridSizer(2, len(self.iface.get_mixer_inputs()), 5, 5)
 
         for mixer_input in self.iface.get_mixer_inputs():
             selection_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=mixer_input.name), 50,
                                 wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_CENTRE)
+
+        for mixer_input in self.iface.get_mixer_inputs():
             selector = EnumMixerElemChoice(self, mixer_input.mixer_elem,
                                            on_change=self.input_settings_changed)
             selection_sizer.Add(selector, 0, wx.ALIGN_CENTRE)
@@ -195,13 +197,17 @@ class MainWindow(wx.Frame):
     def __init__(self, app, iface):
         wx.Frame.__init__(self, None, wx.ID_ANY, "redmixctl")
 
+
         self.input_settings = InputSettingsPanel(self, app, iface)
         self.tabs = MixerTabs(self, iface)
         self.output_settings = OutputSettingsPanel(self, app, iface)
 
+        input_and_mix_sizer = wx.BoxSizer(wx.VERTICAL)
+        input_and_mix_sizer.Add(self.tabs, proportion=1, flag=wx.ALL, border=5)
+        input_and_mix_sizer.Add(self.input_settings, proportion=0, flag=wx.ALL, border=5)
+
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.input_settings, proportion=0, flag=wx.ALL, border=5)
-        sizer.Add(self.tabs, proportion=1, flag=wx.ALL, border=5)
+        sizer.Add(input_and_mix_sizer)
         sizer.Add(self.output_settings, proportion=0, flag=wx.ALL, border=5)
         self.SetSizerAndFit(sizer)
 
