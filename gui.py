@@ -35,10 +35,14 @@ class EnumMixerElemChoice(wx.Choice):
         self.name = mixer_elem.mixer()
         self.mixer_elem = mixer_elem
         self.extra_on_change = on_change
-        current, choices = mixer_elem.getenum()
+        _, choices = mixer_elem.getenum()
 
         wx.Choice.__init__(self, parent, choices=choices)
         self.Bind(wx.EVT_CHOICE, self.on_change)
+        self.refresh_from_alsa()
+
+    def refresh_from_alsa(self):
+        current, _ = self.mixer_elem.getenum()
         index_of_current_value = self.FindString(current)
         self.SetSelection(index_of_current_value)
 
@@ -52,10 +56,10 @@ class EnumMixerElemChoice(wx.Choice):
 
 
 class Fader(wx.Window):
-    def __init__(self, parent, mixer_elem):
+    def __init__(self, parent, level_mixer_elem: alsaaudio.Mixer, input_select_mixer_elem: alsaaudio.Mixer):
         wx.Window.__init__(self, parent)
 
-        self.mixer_elem = mixer_elem
+        self.level_mixer_elem = level_mixer_elem
         self.parent = parent
 
         sizer = wx.GridBagSizer()
@@ -64,23 +68,20 @@ class Fader(wx.Window):
 
         sizer.Add(slider, (1, 1), span=(10, 3), flag=wx.EXPAND)
 
-        self.label = wx.StaticText(self, wx.ID_ANY, label=mixer_elem.mixer())
-        sizer.Add(self.label, (12, 1))
+        self.input_select = EnumMixerElemChoice(self, input_select_mixer_elem,
+                                                on_change=self.input_settings_changed)
+        sizer.Add(self.input_select, (12, 1), flag=wx.ALIGN_CENTRE)
 
         self.SetSizerAndFit(sizer)
         self.Show(True)
 
-    def set_label(self, label):
-        current_label = self.label.GetLabel()
-        if current_label != label:
-            logger.debug("Setting label for %s control from '%s' to '%s'",
-                         self.mixer_elem.mixer(), current_label, label)
-        self.label.SetLabel(label)
-        self.label.Refresh()
-        self.Refresh()
-
     def update(self, event):
-        logger.info("%s [%s] changed to %d", self.label.GetLabel(), self.mixer_elem.mixer(), event.GetInt())
+        logger.info("%s changed to %d", self.level_mixer_elem.mixer(), event.GetInt())
+
+    def input_settings_changed(self):
+        mixertab = self.parent
+        mixertabs = mixertab.parent
+        mixertabs.refresh_input_settings()
 
 
 class MixerTab(wx.Window):
@@ -94,7 +95,6 @@ class MixerTab(wx.Window):
         assert len(mix.mixer_elems) == len(iface.get_mixer_inputs())
 
         self.initialize()
-        self.update_fader_names()
 
     def initialize(self):
         self.sizer = wx.BoxSizer()
@@ -102,8 +102,10 @@ class MixerTab(wx.Window):
         pos = 3
         self.sizer.AddSpacer(10)
         self.faders = []
-        for mixer_elem in self.mix.mixer_elems:
-            fader = Fader(self, mixer_elem)
+        for i in range(0, len(self.mix.mixer_elems)):
+            level_mixer_elem = self.mix.mixer_elems[i]
+            input_select_mixer_elem = self.iface.get_mixer_inputs()[i].mixer_elem
+            fader = Fader(self, level_mixer_elem, input_select_mixer_elem)
             self.faders.append(fader)
 
             self.sizer.Add(fader)
@@ -113,19 +115,13 @@ class MixerTab(wx.Window):
         self.SetSizerAndFit(self.sizer)
         self.Show(True)
 
-    def update_fader_names(self):
-        """This is called when the input sources are changed - we need to go
-        through each fader and change the caption if it's now connected to
-        something different.
+    def refresh_input_settings(self):
+        """All mixes use the same mapping of physical inputs to mixer inputs.
+        So when they are changed in one tab, this is called to update the
+        selections in all other mix tabs.
         """
-        for i in range(0, len(self.faders)):
-            input_connection_mixer_elem = self.iface.get_mixer_inputs()[i]
-            mixer_input_source = input_connection_mixer_elem.mixer_elem.getenum()[0]
-            self.faders[i].set_label(mixer_input_source)
-
-        self.Layout()
-        self.Refresh()
-        self.Update()
+        for fader in self.faders:
+            fader.input_select.refresh_from_alsa()
 
 
 class MixerTabs(wx.Notebook):
@@ -138,36 +134,9 @@ class MixerTabs(wx.Notebook):
             self.mix_tabs += [mix_tab]
             self.AddPage(mix_tab, mix.name)
 
-
-class InputSettingsPanel(wx.Panel):
-    def __init__(self, parent, app, iface):
-        wx.Panel.__init__(self, parent)
-        self.app = app
-        self.iface = iface
-
-        panel_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Mixer inputs")
-
-        selection_sizer = wx.GridSizer(2, len(self.iface.get_mixer_inputs()), 5, 5)
-
-        for mixer_input in self.iface.get_mixer_inputs():
-            selection_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=mixer_input.name), 50,
-                                wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_CENTRE)
-
-        for mixer_input in self.iface.get_mixer_inputs():
-            selector = EnumMixerElemChoice(self, mixer_input.mixer_elem,
-                                           on_change=self.input_settings_changed)
-            selection_sizer.Add(selector, 0, wx.ALIGN_CENTRE)
-
-        panel_sizer.Add(selection_sizer, flag=wx.ALL, border=5)
-
-        self.SetSizerAndFit(panel_sizer)
-        self.Show()
-
-    def input_settings_changed(self):
-        mix_tabs = self.app.frame.tabs.mix_tabs
-        for mix_tab in mix_tabs:
-            mix_tab.update_fader_names()
-            mix_tab.Update()
+    def refresh_input_settings(self):
+        for mix_tab in self.mix_tabs:
+            mix_tab.refresh_input_settings()
 
 
 class OutputSettingsPanel(wx.Panel):
@@ -197,17 +166,11 @@ class MainWindow(wx.Frame):
     def __init__(self, app, iface):
         wx.Frame.__init__(self, None, wx.ID_ANY, "redmixctl")
 
-
-        self.input_settings = InputSettingsPanel(self, app, iface)
         self.tabs = MixerTabs(self, iface)
         self.output_settings = OutputSettingsPanel(self, app, iface)
 
-        input_and_mix_sizer = wx.BoxSizer(wx.VERTICAL)
-        input_and_mix_sizer.Add(self.tabs, proportion=1, flag=wx.ALL, border=5)
-        input_and_mix_sizer.Add(self.input_settings, proportion=0, flag=wx.ALL, border=5)
-
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(input_and_mix_sizer)
+        sizer.Add(self.tabs, proportion=1, flag=wx.ALL, border=5)
         sizer.Add(self.output_settings, proportion=0, flag=wx.ALL, border=5)
         self.SetSizerAndFit(sizer)
 
