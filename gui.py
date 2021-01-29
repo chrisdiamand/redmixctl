@@ -63,20 +63,32 @@ class Fader(wx.Window):
         self.parent = parent
 
         sizer = wx.GridBagSizer()
-        slider = wx.Slider(self, wx.ID_ANY, style=wx.SL_VERTICAL | wx.SL_INVERSE)
-        self.Bind(wx.EVT_SLIDER, self.update, slider)
+        self.slider = wx.Slider(self, wx.ID_ANY, style=wx.SL_VERTICAL | wx.SL_INVERSE)
+        self.Bind(wx.EVT_SLIDER, self.update, self.slider)
+        # Devices use arbitrary ranges but pyalsaaudio converts them to
+        # percentages for us.
+        self.slider.SetRange(0, 100)
 
-        sizer.Add(slider, (1, 1), span=(10, 3), flag=wx.EXPAND)
+        sizer.Add(self.slider, (1, 1), span=(10, 3), flag=wx.EXPAND)
 
         self.input_select = EnumMixerElemChoice(self, input_select_mixer_elem,
                                                 on_change=self.input_settings_changed)
         sizer.Add(self.input_select, (12, 1), flag=wx.ALIGN_CENTRE)
 
+        self.refresh_from_alsa()
+
         self.SetSizerAndFit(sizer)
         self.Show(True)
 
+    def refresh_from_alsa(self):
+        vol = self.level_mixer_elem.getvolume()[0]
+
+        self.slider.SetValue(vol)
+
     def update(self, event):
-        logger.info("%s changed to %d", self.level_mixer_elem.mixer(), event.GetInt())
+        vol = event.GetInt()
+        logger.debug("%s changed to %d", self.level_mixer_elem.mixer(), event.GetInt())
+        self.level_mixer_elem.setvolume(vol)
 
     def input_settings_changed(self):
         mixertab = self.parent
