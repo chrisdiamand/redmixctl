@@ -1,3 +1,4 @@
+#!/usr/bin/env xdg-open
 [Desktop Entry]
 Name=redmixctl
 Comment=Focusrite Scarlett Mixer Control
