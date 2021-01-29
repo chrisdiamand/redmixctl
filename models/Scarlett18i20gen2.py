@@ -331,6 +331,10 @@ mixer_inputs = [
     "Mixer Input 18"
 ]
 
+global_settings = [
+    "Clock Source Clock Source",
+]
+
 Scarlett18i20gen2 = model.Model(
     canonical_name=canonical_name,
     name=name,
@@ -340,4 +344,5 @@ Scarlett18i20gen2 = model.Model(
     pcm_outputs=pcm_outputs,
     mixes=mixes,
     mixer_inputs=mixer_inputs,
+    global_settings=global_settings,
 )

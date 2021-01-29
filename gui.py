@@ -177,16 +177,45 @@ class OutputSettingsPanel(wx.Panel):
         self.Show()
 
 
+class GlobalSettingsPanel(wx.Panel):
+    def __init__(self, parent, app, iface):
+        wx.Panel.__init__(self, parent)
+        self.app = app
+        self.iface = iface
+
+        panel_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Global Settings")
+
+        settings_sizer = wx.GridSizer(4)
+
+        for mixer_elem in self.iface.get_global_settings():
+            settings_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=mixer_elem.mixer()), 50,
+                              wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_RIGHT)
+
+            choice_box = EnumMixerElemChoice(self, mixer_elem)
+            settings_sizer.Add(choice_box, 0, wx.ALIGN_CENTRE)
+
+        panel_sizer.Add(settings_sizer, flag=wx.ALL, border=5)
+
+        self.SetSizerAndFit(panel_sizer)
+        self.Show()
+
+
 class MainWindow(wx.Frame):
     def __init__(self, app, iface):
         wx.Frame.__init__(self, None, wx.ID_ANY, "redmixctl")
 
         self.tabs = MixerTabs(self, iface)
         self.output_settings = OutputSettingsPanel(self, app, iface)
+        self.global_settings = GlobalSettingsPanel(self, app, iface)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.tabs, proportion=1, flag=wx.ALL, border=5)
-        sizer.Add(self.output_settings, proportion=0, flag=wx.ALL, border=5)
+
+        settings_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        settings_sizer.Add(self.output_settings, flag=wx.ALL, border=5)
+        settings_sizer.Add(self.global_settings, flag=wx.ALL, border=5)
+
+        sizer.Add(settings_sizer, proportion=0, flag=wx.ALL) #, border=5)
         self.SetSizerAndFit(sizer)
 
         self.Show(True)

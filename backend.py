@@ -159,6 +159,9 @@ class Interface:
     def get_mixer_inputs(self):
         return self.mixer_inputs
 
+    def get_global_settings(self):
+        return [self.mixer_elems[i] for i in self.model.global_settings]
+
     def init_monitorable_sources(self):
         """Initialise objects representing the physical inputs and PCM outputs that
         can be included in the mix"""

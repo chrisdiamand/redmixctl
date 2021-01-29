@@ -31,7 +31,8 @@ class Model:
                  physical_outputs: typing.List[str],
                  pcm_outputs: typing.List[str],
                  mixes: typing.Dict[str, typing.List[str]],
-                 mixer_inputs: typing.List[str]):
+                 mixer_inputs: typing.List[str],
+                 global_settings: typing.List[str]):
 
         assert canonical_name
         assert name
@@ -55,6 +56,7 @@ class Model:
         self.pcm_outputs = pcm_outputs
         self.mixes = mixes
         self.mixer_inputs = mixer_inputs
+        self.global_settings = global_settings
 
     def validate_mixer_elems(self, mixer_elems):
         """Verify that all the mixer elements specified in the model actually exist"""
