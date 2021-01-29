@@ -147,12 +147,15 @@ class OutputSettingsPanel(wx.Panel):
 
         panel_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Outputs")
 
-        outputs_sizer = wx.GridSizer(4)
+        num_outputs = len(self.iface.get_outputs())
+        num_columns = (num_outputs / 2) + (num_outputs % 2)
+        outputs_sizer = wx.GridSizer(num_columns)
 
         self.outputs = []
         for output in self.iface.get_outputs():
             outputs_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=output.name), 50,
                               wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_RIGHT)
+
             mix_selector = EnumMixerElemChoice(self, output.mixer_elem)
             outputs_sizer.Add(mix_selector, 0, wx.ALIGN_CENTRE)
 
@@ -169,7 +172,7 @@ class MainWindow(wx.Frame):
         self.tabs = MixerTabs(self, iface)
         self.output_settings = OutputSettingsPanel(self, app, iface)
 
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.tabs, proportion=1, flag=wx.ALL, border=5)
         sizer.Add(self.output_settings, proportion=0, flag=wx.ALL, border=5)
         self.SetSizerAndFit(sizer)
