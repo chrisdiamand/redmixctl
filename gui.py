@@ -69,7 +69,7 @@ class Fader(wx.Window):
         # percentages for us.
         self.slider.SetRange(0, 100)
 
-        sizer.Add(self.slider, (1, 1), span=(10, 3), flag=wx.EXPAND)
+        sizer.Add(self.slider, (1, 1), span=(10, 1), flag=wx.EXPAND)
 
         self.input_select = EnumMixerElemChoice(self, input_select_mixer_elem,
                                                 on_change=self.input_settings_changed)
