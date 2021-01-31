@@ -213,7 +213,7 @@ class MainWindow(wx.Frame):
 
         settings_sizer = wx.BoxSizer(wx.HORIZONTAL)
         settings_sizer.Add(self.output_settings, flag=wx.ALL, border=5)
-        settings_sizer.Add(self.global_settings, flag=wx.ALL, border=5)
+        settings_sizer.Add(self.global_settings, flag=wx.TOP | wx.BOTTOM | wx.RIGHT, border=5)
 
         sizer.Add(settings_sizer, proportion=0, flag=wx.ALL) #, border=5)
         self.SetSizerAndFit(sizer)
