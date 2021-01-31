@@ -106,9 +106,6 @@ class MixerTab(wx.Window):
 
         assert len(mix.mixer_elems) == len(iface.get_mixer_inputs())
 
-        self.initialize()
-
-    def initialize(self):
         self.sizer = wx.BoxSizer()
 
         pos = 3
