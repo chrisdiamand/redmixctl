@@ -15,6 +15,7 @@
 
 
 import alsaaudio
+import itertools
 import logging
 import typing
 
@@ -32,6 +33,8 @@ class Model:
                  pcm_outputs: typing.List[str],
                  mixes: typing.Dict[str, typing.List[str]],
                  mixer_inputs: typing.List[str],
+                 force_enum_values: typing.Dict[str, str],
+                 force_volumes: typing.Dict[str, int],
                  global_settings: typing.List[str]):
 
         assert canonical_name
@@ -56,6 +59,8 @@ class Model:
         self.pcm_outputs = pcm_outputs
         self.mixes = mixes
         self.mixer_inputs = mixer_inputs
+        self.force_enum_values = force_enum_values
+        self.force_volumes = force_volumes
         self.global_settings = global_settings
 
     def validate_mixer_elems(self, mixer_elems):
@@ -77,5 +82,11 @@ class Model:
                             output)
                 logger.info("Expected: %s", ", ".join(sorted(source_enum_values)))
                 logger.info("Got: %s", ", ".join(sorted(enum_values)))
+                return False
+
+        for name in itertools.chain(self.force_enum_values.keys(), self.force_volumes.keys()):
+            if name not in mixer_elems:
+                logger.info("Missing fixed-value control '%s'", name)
+                return False
 
         return passed

@@ -331,6 +331,31 @@ mixer_inputs = [
     "Mixer Input 18"
 ]
 
+# On the 18i20, each physical output has a dedicated mixer control for its
+# volume. For now, set most outputs to HW-controlled using force_enum_values,
+# and only display faders for the headphone outputs.
+force_enum_values = {
+    "Line Out 01 Volume Control": "HW",
+    "Line Out 02 Volume Control": "HW",
+    "Line Out 03 Volume Control": "HW",
+    "Line Out 04 Volume Control": "HW",
+    "Line Out 05 Volume Control": "HW",
+    "Line Out 06 Volume Control": "HW",
+    "Line Out 07 Volume Control": "SW",
+    "Line Out 08 Volume Control": "SW",
+    "Line Out 09 Volume Control": "SW",
+    "Line Out 10 Volume Control": "SW",
+}
+
+# Headphone levels can be controlled using the physical dial, so just force
+# them to max volume instead of bothering with a GUI fader.
+force_volumes = {
+    "Line 07 (Headphones 1 L)": 100,
+    "Line 08 (Headphones 1 R)": 100,
+    "Line 09 (Headphones 2 L)": 100,
+    "Line 10 (Headphones 2 R)": 100,
+}
+
 global_settings = [
     "Clock Source Clock Source",
 ]
@@ -344,5 +369,7 @@ Scarlett18i20gen2 = model.Model(
     pcm_outputs=pcm_outputs,
     mixes=mixes,
     mixer_inputs=mixer_inputs,
+    force_enum_values=force_enum_values,
+    force_volumes=force_volumes,
     global_settings=global_settings,
 )

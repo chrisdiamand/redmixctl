@@ -104,7 +104,6 @@ def get_mixer_elems(card_index: int) -> typing.Dict[str, alsaaudio.Mixer]:
     # Get the mixer element for each available mixer control
     mixer_elems: typing.Dict[str, alsaaudio.Mixer] = {}
     for mixer_elem_name in alsaaudio.mixers(cardindex=card_index):
-        logger.debug("Found mixer element '%s'" % mixer_elem_name)
         elem = alsaaudio.Mixer(control=mixer_elem_name, cardindex=card_index)
         assert mixer_elem_name not in mixer_elems
         mixer_elems[mixer_elem_name] = elem
@@ -146,6 +145,7 @@ class Interface:
         self.init_outputs()
         self.init_mixer_inputs()
         self.init_mixes()
+        self.init_forced_values()
 
     def get_inputs(self):
         return self.sources
@@ -196,3 +196,13 @@ class Interface:
         for mix_name in sorted(self.model.mixes):
             input_volume_control_names = self.model.mixes[mix_name]
             self.mixes.append(Mix(self, mix_name, input_volume_control_names))
+
+    def init_forced_values(self):
+        for name in self.model.force_enum_values:
+            mixer_elem = self.mixer_elems[name]
+            set_enum_value(mixer_elem, self.model.force_enum_values[name])
+
+        for name in self.model.force_volumes:
+            mixer_elem = self.mixer_elems[name]
+            volume = self.model.force_volumes[name]
+            mixer_elem.setvolume(volume)
