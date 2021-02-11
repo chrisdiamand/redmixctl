@@ -28,7 +28,6 @@ class Model:
                  canonical_name: str,
                  name: str,
                  physical_inputs: typing.List[str],
-                 pcm_inputs: typing.List[str],
                  physical_outputs: typing.List[str],
                  pcm_outputs: typing.List[str],
                  mixes: typing.Dict[str, typing.List[str]],
@@ -40,11 +39,6 @@ class Model:
         assert canonical_name
         assert name
 
-        # Each physical input should have a PCM input
-        assert len(physical_inputs) == len(pcm_inputs)
-        # ... and the same for outputs
-        assert len(physical_outputs) == len(pcm_outputs)
-
         # Different models may have different numbers of mixes. There are
         # usually the same number of mixer inputs as physical inputs, but we
         # shouldn't assume that's the case; we need flexibility here anyway
@@ -54,7 +48,6 @@ class Model:
         self.canonical_name = canonical_name
         self.name = name
         self.physical_inputs = physical_inputs
-        self.pcm_inputs = pcm_inputs
         self.physical_outputs = physical_outputs
         self.pcm_outputs = pcm_outputs
         self.mixes = mixes

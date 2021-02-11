@@ -40,27 +40,6 @@ physical_inputs = [
     "ADAT 8"
 ]
 
-pcm_inputs = [
-    "PCM 01",
-    "PCM 02",
-    "PCM 03",
-    "PCM 04",
-    "PCM 05",
-    "PCM 06",
-    "PCM 07",
-    "PCM 08",
-    "PCM 09",
-    "PCM 10",
-    "PCM 11",
-    "PCM 12",
-    "PCM 13",
-    "PCM 14",
-    "PCM 15",
-    "PCM 16",
-    "PCM 17",
-    "PCM 18"
-]
-
 physical_outputs = [
     "Analogue Output 01",
     "Analogue Output 02",
@@ -345,6 +324,27 @@ force_enum_values = {
     "Line Out 08 Volume Control": "SW",
     "Line Out 09 Volume Control": "SW",
     "Line Out 10 Volume Control": "SW",
+
+    # For physical inputs, ensure the PCM input sending the input audio back to
+    # the PC corresponds to the correct input.
+    "PCM 01": "Analogue 1",
+    "PCM 02": "Analogue 2",
+    "PCM 03": "Analogue 3",
+    "PCM 04": "Analogue 4",
+    "PCM 05": "Analogue 5",
+    "PCM 06": "Analogue 6",
+    "PCM 07": "Analogue 7",
+    "PCM 08": "Analogue 8",
+    "PCM 09": "S/PDIF 1",
+    "PCM 10": "S/PDIF 2",
+    "PCM 11": "ADAT 1",
+    "PCM 12": "ADAT 2",
+    "PCM 13": "ADAT 3",
+    "PCM 14": "ADAT 4",
+    "PCM 15": "ADAT 5",
+    "PCM 16": "ADAT 6",
+    "PCM 17": "ADAT 7",
+    "PCM 18": "ADAT 8",
 }
 
 # Headphone levels can be controlled using the physical dial, so just force
@@ -364,7 +364,6 @@ Scarlett18i20gen2 = model.Model(
     canonical_name=canonical_name,
     name=name,
     physical_inputs=physical_inputs,
-    pcm_inputs=pcm_inputs,
     physical_outputs=physical_outputs,
     pcm_outputs=pcm_outputs,
     mixes=mixes,

@@ -34,15 +34,9 @@ class CardNotFoundError(Exception):
 
 
 class Source:
-    def __init__(self, interface, name: str, pcm_input: str = None):
+    def __init__(self, interface, name: str):
         self.interface = interface
         self.name = name
-
-        # For physical inputs, ensure the PCM input sending the input audio back to
-        # the PC corresponds to the correct input.
-        if pcm_input:
-            mixer_elem = interface.mixer_elems[pcm_input]
-            set_enum_value(mixer_elem, name)
 
         # At init, try and detect if this input is already set as a mixer input
         self.mixer_input = None
@@ -167,11 +161,8 @@ class Interface:
         can be included in the mix"""
         self.sources = []
 
-        assert len(self.model.physical_inputs) == len(self.model.pcm_inputs)
-        for i in range(0, len(self.model.physical_inputs)):
-            name = self.model.physical_inputs[i]
-            pcm_input = self.model.pcm_inputs[i]
-            self.sources += [Source(self, name, pcm_input=pcm_input)]
+        for name in self.model.physical_inputs:
+            self.sources += [Source(self, name)]
 
         for name in self.model.pcm_outputs:
             self.sources += [Source(self, name)]
