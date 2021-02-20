@@ -79,7 +79,6 @@ class StereoEnumMixer:
         assert "Off" in self.choices
 
         for (choice_L, choice_R) in linked_sources:
-            logger.info("Remove %s from %s", choice_L, self.choices)
             self.choices.remove(choice_L)
             self.choices.remove(choice_R)
             self.choices.append(CHANNEL_SEPARATOR.join([choice_L, choice_R]))
