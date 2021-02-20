@@ -21,7 +21,6 @@ import alsaaudio
 import logging
 import typing
 import wx  # type: ignore
-import wx.lib.scrolledpanel
 
 import backend
 import version
@@ -97,9 +96,9 @@ class Fader(wx.Window):
         mixertabs.refresh_input_settings()
 
 
-class MixerTab(wx.lib.scrolledpanel.ScrolledPanel):
+class MixerTab(wx.Window):
     def __init__(self, parent, iface: backend.Interface, mix: backend.Mix):
-        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent, -1)
+        wx.Window.__init__(self, parent)
 
         self.iface = iface
         self.mix = mix
@@ -122,9 +121,7 @@ class MixerTab(wx.lib.scrolledpanel.ScrolledPanel):
             pos += 1
         self.sizer.AddSpacer(10)
 
-        self.SetSizer(self.sizer)
-        self.Layout()
-        self.SetupScrolling(scroll_x=True, scroll_y=False, scrollToTop=False)
+        self.SetSizerAndFit(self.sizer)
         self.Show(True)
 
     def refresh_input_settings(self):
@@ -209,7 +206,7 @@ class MainWindow(wx.Frame):
         self.global_settings = GlobalSettingsPanel(self, app, iface)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.tabs, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+        sizer.Add(self.tabs, proportion=1, flag=wx.ALL, border=5)
 
         settings_sizer = wx.BoxSizer(wx.HORIZONTAL)
         settings_sizer.Add(self.output_settings, flag=wx.ALL, border=5)
