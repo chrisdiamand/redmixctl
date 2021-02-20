@@ -199,7 +199,7 @@ class OutputSettingsPanel(wx.Panel):
                               wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_RIGHT)
 
             mix_selector = EnumMixerElemChoice(self, output.mixer_elem)
-            outputs_sizer.Add(mix_selector, 0, wx.ALIGN_CENTRE)
+            outputs_sizer.Add(mix_selector, 0, wx.ALIGN_CENTRE | wx.EXPAND | wx.ALL, border=2)
 
         panel_sizer.Add(outputs_sizer, flag=wx.ALL, border=5)
 
@@ -223,7 +223,7 @@ class GlobalSettingsPanel(wx.Panel):
                                wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_RIGHT)
 
             choice_box = EnumMixerElemChoice(self, mixer_elem)
-            settings_sizer.Add(choice_box, 0, wx.ALIGN_CENTRE)
+            settings_sizer.Add(choice_box, 0, wx.ALIGN_CENTRE | wx.EXPAND | wx.ALL, border=2)
 
         panel_sizer.Add(settings_sizer, flag=wx.ALL, border=5)
 
