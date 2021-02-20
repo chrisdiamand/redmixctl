@@ -360,6 +360,19 @@ global_settings = [
     "Clock Source Clock Source",
 ]
 
+stereo_sources = [(f"PCM {i}", f"PCM {i+1}") for i in range(1, 20, 2)] + [
+    ("S/PDIF 1", "S/PDIF 2"),
+]
+
+stereo_sinks = [
+    ("Analogue Output 01", "Analogue Output 02"),
+    ("Analogue Output 03", "Analogue Output 04"),
+    ("Analogue Output 05", "Analogue Output 06"),
+    ("Analogue Output 07", "Analogue Output 08"),
+    ("Analogue Output 09", "Analogue Output 10"),
+    ("S/PDIF Output 1", "S/PDIF Output 2"),
+]
+
 Scarlett18i20gen2 = model.Model(
     canonical_name=canonical_name,
     name=name,
@@ -371,4 +384,6 @@ Scarlett18i20gen2 = model.Model(
     force_enum_values=force_enum_values,
     force_volumes=force_volumes,
     global_settings=global_settings,
+    stereo_sources=stereo_sources,
+    stereo_sinks=stereo_sinks,
 )

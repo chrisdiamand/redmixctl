@@ -34,7 +34,9 @@ class Model:
                  mixer_inputs: typing.List[str],
                  force_enum_values: typing.Dict[str, str],
                  force_volumes: typing.Dict[str, int],
-                 global_settings: typing.List[str]):
+                 global_settings: typing.List[str],
+                 stereo_sources: typing.List[typing.Tuple[str, str]],
+                 stereo_sinks: typing.List[typing.Tuple[str, str]]):
 
         assert canonical_name
         assert name
@@ -55,6 +57,8 @@ class Model:
         self.force_enum_values = force_enum_values
         self.force_volumes = force_volumes
         self.global_settings = global_settings
+        self.stereo_sources = stereo_sources
+        self.stereo_sinks = stereo_sinks
 
     def validate_mixer_elems(self, mixer_elems):
         """Verify that all the mixer elements specified in the model actually exist"""

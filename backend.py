@@ -33,10 +33,10 @@ class CardNotFoundError(Exception):
     pass
 
 
-class StereoMixerElem:
+class StereoVolumeMixer:
     def __init__(self, mixer_elem_L: alsaaudio.Mixer, mixer_elem_R: alsaaudio.Mixer):
-        self.L: alsaaudio.Mixer = mixer_elem_L
-        self.R: alsaaudio.Mixer = mixer_elem_R
+        self.L = mixer_elem_L
+        self.R = mixer_elem_R
 
     def mixer(self) -> str:
         return "/".join([self.L.mixer(), self.R.mixer()])
@@ -49,6 +49,65 @@ class StereoMixerElem:
     def setvolume(self, volume: int):
         self.L.setvolume(volume)
         self.R.setvolume(volume)
+
+
+class StereoEnumMixer:
+    def __init__(self, mixer_elem_L: alsaaudio.Mixer, mixer_elem_R: alsaaudio.Mixer,
+                 linked_sources: typing.List[typing.Tuple[str, str]]):
+        self.L = mixer_elem_L
+        self.R = mixer_elem_R
+
+        current_L, choices_L = self.L.getenum()
+        current_R, choices_R = self.R.getenum()
+        assert choices_L == choices_R
+        self.choices = choices_L
+
+        assert "Off" in self.choices
+
+        for (choice_L, choice_R) in linked_sources:
+            logger.info("Remove %s from %s", choice_L, self.choices)
+            self.choices.remove(choice_L)
+            self.choices.remove(choice_R)
+            self.choices.append("/".join([choice_L, choice_R]))
+
+    def mixer(self) -> str:
+        return "/".join([self.L.mixer(), self.R.mixer()])
+
+    def getenum(self) -> typing.Tuple[str, typing.List[str]]:
+        current_L, choices_L = self.L.getenum()
+        current_R, choices_R = self.R.getenum()
+
+        if current_L == current_R and current_L in self.choices:
+            return current_L, self.choices
+
+        if current_L != current_R:
+            stereo_choice_value = "/".join([current_L, current_R])
+            if stereo_choice_value in self.choices:
+                return (stereo_choice_value, self.choices)
+
+            if current_L in self.choices:
+                set_enum_value(self.R, "Off")
+                return current_L, self.choices
+
+            if current_R in self.choices:
+                set_enum_value(self.L, "Off")
+                return current_R, self.choices
+
+        set_enum_value(self.L, "Off")
+        set_enum_value(self.R, "Off")
+        return "Off", self.choices
+
+    def setenum(self, choice: int):
+        choice_str = self.choices[choice]
+        channels = choice_str.split("/")
+        if len(channels) == 1:
+            set_enum_value(self.L, channels[0])
+            set_enum_value(self.R, channels[0])
+        elif len(channels) == 2:
+            set_enum_value(self.L, channels[0])
+            set_enum_value(self.R, channels[1])
+        else:
+            assert False, f"More than 2 channels in '{choice_str}'"
 
 
 class Source:
@@ -117,7 +176,7 @@ class Mix:
             input_volume_control_name_R = input_volume_control_names_R[i]
             mixer_elem_L = interface.mixer_elems[input_volume_control_name_L]
             mixer_elem_R = interface.mixer_elems[input_volume_control_name_R]
-            self.mixer_elems.append(StereoMixerElem(mixer_elem_L, mixer_elem_R))
+            self.mixer_elems.append(StereoVolumeMixer(mixer_elem_L, mixer_elem_R))
 
 
 def get_mixer_elems(card_index: int) -> typing.Dict[str, alsaaudio.Mixer]:
@@ -196,9 +255,21 @@ class Interface:
     def init_outputs(self):
         self.outputs = []
 
-        for name in self.model.physical_outputs:
+        mono_outputs = list(self.model.physical_outputs)
+        for (output_L, output_R) in self.model.stereo_sinks:
+            mono_outputs.remove(output_L)
+            mono_outputs.remove(output_R)
+
+        for name in mono_outputs:
             mixer_elem = self.mixer_elems[name]
             output = Output(self, name, mixer_elem)
+            self.outputs += [output]
+
+        for (output_L, output_R) in self.model.stereo_sinks:
+            mixer_elem_L = self.mixer_elems[output_L]
+            mixer_elem_R = self.mixer_elems[output_R]
+            mixer_elem = StereoEnumMixer(mixer_elem_L, mixer_elem_R, self.model.stereo_sources)
+            output = Output(self, "/".join([output_L, output_R]), mixer_elem)
             self.outputs += [output]
 
     def init_mixer_inputs(self):
