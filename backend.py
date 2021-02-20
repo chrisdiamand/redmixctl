@@ -33,6 +33,24 @@ class CardNotFoundError(Exception):
     pass
 
 
+class StereoMixerElem:
+    def __init__(self, mixer_elem_L: alsaaudio.Mixer, mixer_elem_R: alsaaudio.Mixer):
+        self.L: alsaaudio.Mixer = mixer_elem_L
+        self.R: alsaaudio.Mixer = mixer_elem_R
+
+    def mixer(self) -> str:
+        return "/".join([self.L.mixer(), self.R.mixer()])
+
+    def getvolume(self) -> typing.List[int]:
+        volume_L = self.L.getvolume()[0]
+        volume_R = self.R.getvolume()[0]
+        return [int((volume_L + volume_R) / 2)]
+
+    def setvolume(self, volume: int):
+        self.L.setvolume(volume)
+        self.R.setvolume(volume)
+
+
 class Source:
     def __init__(self, interface, name: str):
         self.interface = interface
@@ -85,13 +103,21 @@ class MixerInput:
 
 
 class Mix:
-    def __init__(self, interface, name, input_volume_control_names):
+    def __init__(self, interface, name_L, name_R,
+                 input_volume_control_names_L, input_volume_control_names_R):
+
+        assert len(input_volume_control_names_L) == len(input_volume_control_names_R)
+
         self.interface = interface
-        self.name = name
+        self.name = "/".join([name_L, name_R])
         self.mixer_elems = []
-        for input_volume_control_name in input_volume_control_names:
-            mixer_elem = interface.mixer_elems[input_volume_control_name]
-            self.mixer_elems.append(mixer_elem)
+
+        for i in range(0, len(input_volume_control_names_L)):
+            input_volume_control_name_L = input_volume_control_names_L[i]
+            input_volume_control_name_R = input_volume_control_names_R[i]
+            mixer_elem_L = interface.mixer_elems[input_volume_control_name_L]
+            mixer_elem_R = interface.mixer_elems[input_volume_control_name_R]
+            self.mixer_elems.append(StereoMixerElem(mixer_elem_L, mixer_elem_R))
 
 
 def get_mixer_elems(card_index: int) -> typing.Dict[str, alsaaudio.Mixer]:
@@ -184,9 +210,15 @@ class Interface:
 
     def init_mixes(self):
         self.mixes = []
-        for mix_name in sorted(self.model.mixes):
-            input_volume_control_names = self.model.mixes[mix_name]
-            self.mixes.append(Mix(self, mix_name, input_volume_control_names))
+        model_mixes = sorted(self.model.mixes)
+        for i in range(0, len(model_mixes), 2):
+            mix_name_L = model_mixes[i]
+            mix_name_R = model_mixes[i + 1]
+            input_volume_control_names_L = self.model.mixes[mix_name_L]
+            input_volume_control_names_R = self.model.mixes[mix_name_R]
+            self.mixes.append(Mix(self, mix_name_L, mix_name_R,
+                                  input_volume_control_names_L,
+                                  input_volume_control_names_R))
 
     def init_forced_values(self):
         for name in self.model.force_enum_values:
