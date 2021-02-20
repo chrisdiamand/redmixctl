@@ -219,7 +219,7 @@ class GlobalSettingsPanel(wx.Panel):
 
         for mixer_elem in self.iface.get_global_settings():
             settings_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=mixer_elem.mixer()), 50,
-                              wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_RIGHT)
+                               wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_RIGHT)
 
             choice_box = EnumMixerElemChoice(self, mixer_elem)
             settings_sizer.Add(choice_box, 0, wx.ALIGN_CENTRE)
@@ -245,7 +245,7 @@ class MainWindow(wx.Frame):
         settings_sizer.Add(self.output_settings, flag=wx.ALL, border=5)
         settings_sizer.Add(self.global_settings, flag=wx.TOP | wx.BOTTOM | wx.RIGHT, border=5)
 
-        sizer.Add(settings_sizer, proportion=0, flag=wx.ALL) #, border=5)
+        sizer.Add(settings_sizer, proportion=0, flag=wx.ALL)
         self.SetSizerAndFit(sizer)
 
         self.Show(True)
