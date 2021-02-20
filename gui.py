@@ -82,7 +82,8 @@ class EnumMixerElemChoice(wx.Choice):
 
 
 class Fader(wx.Window):
-    def __init__(self, parent, level_mixer_elem: alsaaudio.Mixer, input_select_mixer_elem: alsaaudio.Mixer):
+    def __init__(self, parent, level_mixer_elem: backend.SupportsVolumeMixer,
+                 input_select_mixer_elem: alsaaudio.Mixer):
         wx.Window.__init__(self, parent)
 
         self.level_mixer_elem = level_mixer_elem

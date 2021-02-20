@@ -22,6 +22,7 @@ import logging
 import re
 import sys
 import typing
+import typing_extensions
 
 import version
 import models
@@ -34,6 +35,12 @@ CHANNEL_SEPARATOR = " + "
 
 class CardNotFoundError(Exception):
     pass
+
+
+class SupportsVolumeMixer(typing_extensions.Protocol):
+    def mixer(self) -> str: ...
+    def getvolume(self) -> typing.List[int]: ...
+    def setvolume(self, volume: int): ...
 
 
 class StereoVolumeMixer:
