@@ -224,9 +224,9 @@ class Interface:
         self.model = model
 
         self.init_monitorable_sources()
-        self.init_outputs()
         self.init_mixer_inputs()
         self.init_mixes()
+        self.init_outputs()
         self.init_forced_values()
 
     def get_inputs(self):
@@ -271,7 +271,7 @@ class Interface:
         for (output_L, output_R) in self.model.stereo_sinks:
             mixer_elem_L = self.mixer_elems[output_L]
             mixer_elem_R = self.mixer_elems[output_R]
-            mixer_elem = StereoEnumMixer(mixer_elem_L, mixer_elem_R, self.model.stereo_sources)
+            mixer_elem = StereoEnumMixer(mixer_elem_L, mixer_elem_R, self.model.stereo_sources + self.stereo_mixes)
             output = Output(self, CHANNEL_SEPARATOR.join([output_L, output_R]), mixer_elem)
             self.outputs += [output]
 
@@ -284,10 +284,12 @@ class Interface:
 
     def init_mixes(self):
         self.mixes = []
+        self.stereo_mixes: typing.List[typing.Tuple[str, str]] = []
         model_mixes = sorted(self.model.mixes)
         for i in range(0, len(model_mixes), 2):
             mix_name_L = model_mixes[i]
             mix_name_R = model_mixes[i + 1]
+            self.stereo_mixes.append((mix_name_L, mix_name_R))
             input_volume_control_names_L = self.model.mixes[mix_name_L]
             input_volume_control_names_R = self.model.mixes[mix_name_R]
             self.mixes.append(Mix(self, mix_name_L, mix_name_R,
