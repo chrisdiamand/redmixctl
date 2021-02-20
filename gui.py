@@ -82,8 +82,7 @@ class EnumMixerElemChoice(wx.Choice):
 
 
 class Fader(wx.Window):
-    def __init__(self, parent, level_mixer_elem: backend.SupportsVolumeMixer,
-                 input_select_mixer_elem: alsaaudio.Mixer):
+    def __init__(self, parent, level_mixer_elem: backend.SupportsVolumeMixer):
         wx.Window.__init__(self, parent)
 
         self.level_mixer_elem = level_mixer_elem
@@ -97,10 +96,6 @@ class Fader(wx.Window):
         self.slider.SetRange(0, 100)
 
         sizer.Add(self.slider, (1, 1), span=(10, 1), flag=wx.EXPAND)
-
-        self.input_select = EnumMixerElemChoice(self, input_select_mixer_elem,
-                                                on_change=self.input_settings_changed)
-        sizer.Add(self.input_select, (12, 1), flag=wx.ALIGN_CENTRE)
 
         self.refresh_from_alsa()
 
@@ -117,11 +112,6 @@ class Fader(wx.Window):
         logger.debug("%s changed to %d", self.level_mixer_elem.mixer(), event.GetInt())
         self.level_mixer_elem.setvolume(vol)
 
-    def input_settings_changed(self):
-        mixertab = self.parent
-        mixertabs = mixertab.parent
-        mixertabs.refresh_input_settings()
-
 
 class MixerTab(wx.Window):
     def __init__(self, parent, iface: backend.Interface, mix: backend.Mix):
@@ -137,15 +127,28 @@ class MixerTab(wx.Window):
         # windows going off the sides of the screen.
         _, num_cols = table_dimensions(len(self.mix.mixer_elems), 10)
 
-        self.faders_sizer = wx.GridSizer(num_cols)
+        self.faders_sizer = wx.FlexGridSizer(num_cols)
+        self.faders_sizer.SetFlexibleDirection(wx.VERTICAL)
         self.faders = []
-        for i in range(0, len(self.mix.mixer_elems)):
-            level_mixer_elem = self.mix.mixer_elems[i]
-            input_select_mixer_elem = self.iface.get_mixer_inputs()[i].mixer_elem
-            fader = Fader(self, level_mixer_elem, input_select_mixer_elem)
-            self.faders.append(fader)
+        self.input_selectors = []
+        i = 0
+        while i < len(self.mix.mixer_elems):
+            num_faders_on_row = min(num_cols, len(self.mix.mixer_elems) - i)
+            for j in range(i, i + num_faders_on_row):
+                level_mixer_elem = self.mix.mixer_elems[j]
+                fader = Fader(self, level_mixer_elem)
+                self.faders.append(fader)
+                self.faders_sizer.Add(fader, flag=wx.ALIGN_CENTRE)
 
-            self.faders_sizer.Add(fader)
+            for j in range(i, i + num_faders_on_row):
+                input_select_mixer_elem: alsaaudio.Mixer = self.iface.get_mixer_inputs()[j].mixer_elem
+                input_select = EnumMixerElemChoice(self, input_select_mixer_elem,
+                                                   on_change=self.input_settings_changed)
+                self.input_selectors.append(input_select)
+
+                self.faders_sizer.Add(input_select, flag=wx.ALIGN_CENTRE | wx.ALL | wx.EXPAND, border=2)
+
+            i += num_faders_on_row
 
         self.sizer = wx.BoxSizer()
         self.sizer.AddSpacer(10)
@@ -159,8 +162,12 @@ class MixerTab(wx.Window):
         So when they are changed in one tab, this is called to update the
         selections in all other mix tabs.
         """
-        for fader in self.faders:
-            fader.input_select.refresh_from_alsa()
+        for input_select in self.input_selectors:
+            input_select.refresh_from_alsa()
+
+    def input_settings_changed(self):
+        mixertabs = self.parent
+        mixertabs.refresh_input_settings()
 
 
 class MixerTabs(wx.Notebook):
