@@ -37,9 +37,11 @@ class CardNotFoundError(Exception):
 
 
 class StereoVolumeMixer:
-    def __init__(self, mixer_elem_L: alsaaudio.Mixer, mixer_elem_R: alsaaudio.Mixer):
+    def __init__(self, mixer_elem_L: alsaaudio.Mixer, mixer_elem_R: alsaaudio.Mixer,
+                 zero: typing.List[alsaaudio.Mixer]):
         self.L = mixer_elem_L
         self.R = mixer_elem_R
+        self.zero = zero
 
     def mixer(self) -> str:
         return CHANNEL_SEPARATOR.join([self.L.mixer(), self.R.mixer()])
@@ -52,6 +54,8 @@ class StereoVolumeMixer:
     def setvolume(self, volume: int):
         self.L.setvolume(volume)
         self.R.setvolume(volume)
+        for z in self.zero:
+            z.setvolume(0)
 
 
 class StereoEnumMixer:
@@ -166,20 +170,37 @@ class MixerInput:
 
 class Mix:
     def __init__(self, interface, name_L, name_R,
-                 input_volume_control_names_L, input_volume_control_names_R):
+                 input_volume_control_names_L, input_volume_control_names_R,
+                 num_stereo_channels: int):
 
         assert len(input_volume_control_names_L) == len(input_volume_control_names_R)
+        num_mixer_inputs = len(input_volume_control_names_L)
+        assert num_mixer_inputs > 2 * num_stereo_channels
 
         self.interface = interface
         self.name = CHANNEL_SEPARATOR.join([name_L, name_R])
         self.mixer_elems = []
 
-        for i in range(0, len(input_volume_control_names_L)):
-            input_volume_control_name_L = input_volume_control_names_L[i]
-            input_volume_control_name_R = input_volume_control_names_R[i]
+        # Set up mono channels first - these duplicate control of the same
+        # source in both mixes.
+        i = 0
+        while i < num_mixer_inputs:
+            if i < num_mixer_inputs - 2 * num_stereo_channels:
+                input_volume_control_name_L = input_volume_control_names_L[i]
+                input_volume_control_name_R = input_volume_control_names_R[i]
+                zero = []
+                i += 1
+            else:
+                input_volume_control_name_L = input_volume_control_names_L[i]
+                input_volume_control_name_R = input_volume_control_names_R[i + 1]
+                # Zero the volumes of the right input in left mix and vice versa
+                zero = [input_volume_control_names_L[i + 1], input_volume_control_names_R[i]]
+                i += 2
+
             mixer_elem_L = interface.mixer_elems[input_volume_control_name_L]
             mixer_elem_R = interface.mixer_elems[input_volume_control_name_R]
-            self.mixer_elems.append(StereoVolumeMixer(mixer_elem_L, mixer_elem_R))
+            self.mixer_elems.append(StereoVolumeMixer(mixer_elem_L, mixer_elem_R,
+                                                      zero=[interface.mixer_elems[i] for i in zero]))
 
 
 def get_mixer_elems(card_index: int) -> typing.Dict[str, alsaaudio.Mixer]:
@@ -218,14 +239,16 @@ def find_card_index(model: models.Model) \
 
 
 class Interface:
+    NUM_STEREO_CHANNELS = 2  # TODO: Make this user-configurable
+
     def __init__(self, card_index, mixer_elems, model):
         self.card_index = card_index
         self.mixer_elems = mixer_elems
         self.model = model
 
         self.init_monitorable_sources()
-        self.init_mixer_inputs()
-        self.init_mixes()
+        self.init_mixer_inputs(self.NUM_STEREO_CHANNELS)
+        self.init_mixes(self.NUM_STEREO_CHANNELS)
         self.init_outputs()
         self.init_forced_values()
 
@@ -271,18 +294,31 @@ class Interface:
         for (output_L, output_R) in self.model.stereo_sinks:
             mixer_elem_L = self.mixer_elems[output_L]
             mixer_elem_R = self.mixer_elems[output_R]
-            mixer_elem = StereoEnumMixer(mixer_elem_L, mixer_elem_R, self.model.stereo_sources + self.stereo_mixes)
+            mixer_elem = StereoEnumMixer(mixer_elem_L, mixer_elem_R,
+                                         self.model.stereo_sources + self.stereo_mixes)
             output = Output(self, CHANNEL_SEPARATOR.join([output_L, output_R]), mixer_elem)
             self.outputs += [output]
 
-    def init_mixer_inputs(self):
-        self.mixer_inputs: list[MixerInput] = []
-        for name in self.model.mixer_inputs:
-            mixer_elem: alsaaudio.Mixer = self.mixer_elems[name]
+    def init_mixer_inputs(self, num_stereo_channels: int):
+        self.mixer_inputs: typing.List[MixerInput] = []
+        i = 0
+        while i < len(self.model.mixer_inputs):
+            if i < len(self.model.mixer_inputs) - 2 * num_stereo_channels:
+                name = self.model.mixer_inputs[i]
+                mixer_elem = self.mixer_elems[name]
+                i += 1
+            else:
+                name_L = self.model.mixer_inputs[i]
+                name_R = self.model.mixer_inputs[i + 1]
+                name = CHANNEL_SEPARATOR.join([name_L, name_R])
+                mixer_elem = StereoEnumMixer(self.mixer_elems[name_L], self.mixer_elems[name_R],
+                                             self.model.stereo_sources)
+                i += 2
+
             mixer_input: MixerInput = MixerInput(self, name, mixer_elem)
             self.mixer_inputs.append(mixer_input)
 
-    def init_mixes(self):
+    def init_mixes(self, num_stereo_channels: int):
         self.mixes = []
         self.stereo_mixes: typing.List[typing.Tuple[str, str]] = []
         model_mixes = sorted(self.model.mixes)
@@ -294,7 +330,8 @@ class Interface:
             input_volume_control_names_R = self.model.mixes[mix_name_R]
             self.mixes.append(Mix(self, mix_name_L, mix_name_R,
                                   input_volume_control_names_L,
-                                  input_volume_control_names_R))
+                                  input_volume_control_names_R,
+                                  num_stereo_channels))
 
     def init_forced_values(self):
         for name in self.model.force_enum_values:
