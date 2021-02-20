@@ -29,6 +29,9 @@ import models
 logger = logging.getLogger(version.NAME + "." + __name__)
 
 
+CHANNEL_SEPARATOR = " + "
+
+
 class CardNotFoundError(Exception):
     pass
 
@@ -39,7 +42,7 @@ class StereoVolumeMixer:
         self.R = mixer_elem_R
 
     def mixer(self) -> str:
-        return "/".join([self.L.mixer(), self.R.mixer()])
+        return CHANNEL_SEPARATOR.join([self.L.mixer(), self.R.mixer()])
 
     def getvolume(self) -> typing.List[int]:
         volume_L = self.L.getvolume()[0]
@@ -68,10 +71,10 @@ class StereoEnumMixer:
             logger.info("Remove %s from %s", choice_L, self.choices)
             self.choices.remove(choice_L)
             self.choices.remove(choice_R)
-            self.choices.append("/".join([choice_L, choice_R]))
+            self.choices.append(CHANNEL_SEPARATOR.join([choice_L, choice_R]))
 
     def mixer(self) -> str:
-        return "/".join([self.L.mixer(), self.R.mixer()])
+        return CHANNEL_SEPARATOR.join([self.L.mixer(), self.R.mixer()])
 
     def getenum(self) -> typing.Tuple[str, typing.List[str]]:
         current_L, choices_L = self.L.getenum()
@@ -81,7 +84,7 @@ class StereoEnumMixer:
             return current_L, self.choices
 
         if current_L != current_R:
-            stereo_choice_value = "/".join([current_L, current_R])
+            stereo_choice_value = CHANNEL_SEPARATOR.join([current_L, current_R])
             if stereo_choice_value in self.choices:
                 return (stereo_choice_value, self.choices)
 
@@ -99,7 +102,7 @@ class StereoEnumMixer:
 
     def setenum(self, choice: int):
         choice_str = self.choices[choice]
-        channels = choice_str.split("/")
+        channels = choice_str.split(CHANNEL_SEPARATOR)
         if len(channels) == 1:
             set_enum_value(self.L, channels[0])
             set_enum_value(self.R, channels[0])
@@ -168,7 +171,7 @@ class Mix:
         assert len(input_volume_control_names_L) == len(input_volume_control_names_R)
 
         self.interface = interface
-        self.name = "/".join([name_L, name_R])
+        self.name = CHANNEL_SEPARATOR.join([name_L, name_R])
         self.mixer_elems = []
 
         for i in range(0, len(input_volume_control_names_L)):
@@ -269,7 +272,7 @@ class Interface:
             mixer_elem_L = self.mixer_elems[output_L]
             mixer_elem_R = self.mixer_elems[output_R]
             mixer_elem = StereoEnumMixer(mixer_elem_L, mixer_elem_R, self.model.stereo_sources)
-            output = Output(self, "/".join([output_L, output_R]), mixer_elem)
+            output = Output(self, CHANNEL_SEPARATOR.join([output_L, output_R]), mixer_elem)
             self.outputs += [output]
 
     def init_mixer_inputs(self):
