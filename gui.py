@@ -28,6 +28,32 @@ import version
 logger = logging.getLogger(version.NAME + "." + __name__)
 
 
+def table_dimensions(num_items, max_cols):
+    # First, calculate the number of rows.
+    num_rows = int(num_items / max_cols)
+    # Add a row for the remainder if required
+    if num_items % max_cols > 0:
+        num_rows += 1
+
+    # Then, find the number of colums that fits `num_items` items onto `rows`
+    # rows with the smallest possible number of gaps in the last row.
+    num_cols = int(num_items / num_rows)
+    if num_items % num_rows > 0:
+        num_cols += 1
+    return (num_rows, num_cols)
+
+
+def test_table_dimensions():
+    assert table_dimensions(20, 4) == (5, 4)
+    assert table_dimensions(18, 10) == (2, 9)
+    assert table_dimensions(1, 1) == (1, 1)
+    assert table_dimensions(5, 10) == (1, 5)
+    assert table_dimensions(7, 8) == (1, 7)
+    assert table_dimensions(8, 8) == (1, 8)
+    assert table_dimensions(9, 8) == (2, 5)
+    assert table_dimensions(25, 10) == (3, 9)
+
+
 class EnumMixerElemChoice(wx.Choice):
     """wx.Choice which automatically displays and updates the value of an enum
     mixer element"""
@@ -106,10 +132,12 @@ class MixerTab(wx.Window):
 
         assert len(mix.mixer_elems) == len(iface.get_mixer_inputs())
 
-        self.sizer = wx.BoxSizer()
+        # Don't have more than 10 faders in a row to avoid super long thin
+        # windows going off the sides of the screen.
+        _, num_cols = table_dimensions(len(self.mix.mixer_elems), 10)
 
+        self.faders_sizer = wx.GridSizer(num_cols)
         pos = 3
-        self.sizer.AddSpacer(10)
         self.faders = []
         for i in range(0, len(self.mix.mixer_elems)):
             level_mixer_elem = self.mix.mixer_elems[i]
@@ -117,10 +145,13 @@ class MixerTab(wx.Window):
             fader = Fader(self, level_mixer_elem, input_select_mixer_elem)
             self.faders.append(fader)
 
-            self.sizer.Add(fader)
+            self.faders_sizer.Add(fader)
             pos += 1
-        self.sizer.AddSpacer(10)
 
+        self.sizer = wx.BoxSizer()
+        self.sizer.AddSpacer(10)
+        self.sizer.Add(self.faders_sizer)
+        self.sizer.AddSpacer(10)
         self.SetSizerAndFit(self.sizer)
         self.Show(True)
 
@@ -156,9 +187,10 @@ class OutputSettingsPanel(wx.Panel):
 
         panel_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Outputs")
 
-        num_outputs = len(self.iface.get_outputs())
-        num_columns = (num_outputs / 2) + (num_outputs % 2)
-        outputs_sizer = wx.GridSizer(num_columns)
+        _, num_cols = table_dimensions(len(self.iface.get_outputs()), 4)
+
+        # Double the columns - each row is a text label + choice box
+        outputs_sizer = wx.GridSizer(num_cols * 2)
 
         self.outputs = []
         for output in self.iface.get_outputs():
@@ -182,7 +214,8 @@ class GlobalSettingsPanel(wx.Panel):
 
         panel_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Global Settings")
 
-        settings_sizer = wx.GridSizer(4)
+        # TODO: Use the same number of rows as the output settings panel.
+        settings_sizer = wx.GridSizer(2)
 
         for mixer_elem in self.iface.get_global_settings():
             settings_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=mixer_elem.mixer()), 50,
