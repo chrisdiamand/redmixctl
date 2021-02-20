@@ -138,7 +138,6 @@ class MixerTab(wx.Window):
         _, num_cols = table_dimensions(len(self.mix.mixer_elems), 10)
 
         self.faders_sizer = wx.GridSizer(num_cols)
-        pos = 3
         self.faders = []
         for i in range(0, len(self.mix.mixer_elems)):
             level_mixer_elem = self.mix.mixer_elems[i]
@@ -147,7 +146,6 @@ class MixerTab(wx.Window):
             self.faders.append(fader)
 
             self.faders_sizer.Add(fader)
-            pos += 1
 
         self.sizer = wx.BoxSizer()
         self.sizer.AddSpacer(10)
