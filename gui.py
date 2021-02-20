@@ -194,7 +194,7 @@ class OutputSettingsPanel(wx.Panel):
 
         self.outputs = []
         for output in self.iface.get_outputs():
-            label=output.name.replace(backend.CHANNEL_SEPARATOR, "\n")
+            label = output.name.replace(backend.CHANNEL_SEPARATOR, "\n")
             outputs_sizer.Add(wx.StaticText(self, wx.ID_ANY, label=label), 50,
                               wx.ALIGN_CENTRE_VERTICAL | wx.ALIGN_RIGHT)
 
