@@ -9,7 +9,9 @@
 
 - Show startup errors in GUI as well as via `logger.error`
 
-- Use decibels (requires adding support in pyalsaaudio)
+- Double/middle click on fader resets to 0dB
+
+- Show ticks on faders or add custom fader widget
 
 - Don't allow routing directly from inputs (other than PCM) - use a mix
   instead. No technical reason for this but it's not really a useful use case

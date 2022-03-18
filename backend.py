@@ -39,6 +39,7 @@ class CardNotFoundError(Exception):
 
 class SupportsVolumeMixer(typing_extensions.Protocol):
     def mixer(self) -> str: ...
+    def getrange(self, units: int) -> typing.List[int]: ...
     def getvolume(self) -> typing.List[int]: ...
     def setvolume(self, volume: int): ...
 
@@ -53,14 +54,21 @@ class StereoVolumeMixer:
     def mixer(self) -> str:
         return CHANNEL_SEPARATOR.join([self.L.mixer(), self.R.mixer()])
 
-    def getvolume(self) -> typing.List[int]:
-        volume_L = self.L.getvolume()[0]
-        volume_R = self.R.getvolume()[0]
+    def getrange(self, units=alsaaudio.VOLUME_UNITS_RAW):
+        lmin, lmax = self.L.getrange(units=units)
+        rmin, rmax = self.R.getrange(units=units)
+        assert lmin == rmin
+        assert lmax == rmax
+        return (lmin, lmax)
+
+    def getvolume(self, units=alsaaudio.VOLUME_UNITS_PERCENTAGE) -> typing.List[int]:
+        volume_L = self.L.getvolume(units=units)[0]
+        volume_R = self.R.getvolume(units=units)[0]
         return [int((volume_L + volume_R) / 2)]
 
-    def setvolume(self, volume: int):
-        self.L.setvolume(volume)
-        self.R.setvolume(volume)
+    def setvolume(self, volume: int, units=alsaaudio.VOLUME_UNITS_PERCENTAGE):
+        self.L.setvolume(volume, units=units)
+        self.R.setvolume(volume, units=units)
         for z in self.zero:
             z.setvolume(0)
 

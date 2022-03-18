@@ -93,7 +93,11 @@ class Fader(wx.Window):
         self.Bind(wx.EVT_SLIDER, self.update, self.slider)
         # Devices use arbitrary ranges but pyalsaaudio converts them to
         # percentages for us.
-        self.slider.SetRange(0, 100)
+        vmin, vmax = self.level_mixer_elem.getrange(units=alsaaudio.VOLUME_UNITS_DB)
+        vminf = vmin / 100.0
+        vmaxf = vmax / 100.0
+        self.slider.SetRange(vminf, vmaxf)
+        logger.debug(f"Range of {level_mixer_elem.mixer()} is {vminf} dB - {vmaxf} dB")
 
         sizer.Add(self.slider, (1, 1), span=(10, 1), flag=wx.EXPAND)
 
@@ -103,14 +107,14 @@ class Fader(wx.Window):
         self.Show(True)
 
     def refresh_from_alsa(self):
-        vol = self.level_mixer_elem.getvolume()[0]
+        vol = self.level_mixer_elem.getvolume(units=alsaaudio.VOLUME_UNITS_DB)[0]
 
-        self.slider.SetValue(vol)
+        self.slider.SetValue(vol / 100.0)
 
     def update(self, event):
         vol = event.GetInt()
         logger.debug("%s changed to %d", self.level_mixer_elem.mixer(), event.GetInt())
-        self.level_mixer_elem.setvolume(vol)
+        self.level_mixer_elem.setvolume(int(vol * 100.0), units=alsaaudio.VOLUME_UNITS_DB)
 
 
 class MixerTab(wx.Window):
