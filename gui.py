@@ -239,7 +239,7 @@ class GlobalSettingsPanel(wx.Panel):
 
 class MainWindow(wx.Frame):
     def __init__(self, app, iface):
-        wx.Frame.__init__(self, None, wx.ID_ANY, "redmixctl")
+        wx.Frame.__init__(self, None, wx.ID_ANY, f"redmixctl - {iface.model.name}")
 
         self.tabs = MixerTabs(self, iface)
         self.output_settings = OutputSettingsPanel(self, app, iface)
